@@ -1,9 +1,17 @@
-/** @type {import('next').NextConfig} */
-const nextConfig = {
-  images: {
-    domains: ['firebasestorage.googleapis.com', 'images.unsplash.com'],
-    unoptimized: true
-  }
-}
+import type { NextConfig } from "next";
 
-module.exports = nextConfig
+/** @type {import('next').NextConfig} */
+const nextConfig: NextConfig = {
+  images: {
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: '*.supabase.co',
+        port: '',
+        pathname: '/storage/v1/object/public/**',
+      },
+    ],
+  }
+};
+
+export default nextConfig;

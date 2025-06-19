@@ -1,29 +1,33 @@
-import { AuthProvider } from '@/lib/contexts/AuthContext';
-import Navigation from '@/components/Navigation';
-import Footer from '@/components/Footer';
-import '@/styles/globals.css';
+import { Metadata } from 'next'
+import { Inter } from 'next/font/google'
+import { AuthProvider } from '@/contexts/AuthContext'
+import Navigation from '@/components/Navigation'
+import { Toaster } from 'sonner'
+import './globals.css'
 
-export const metadata = {
-  title: 'Luxury Jewelry Showcase',
-  description: 'Discover exquisite jewelry collections with premium craftsmanship',
-};
+const inter = Inter({ subsets: ['latin'] })
 
-export default function PublicLayout({
+export const metadata: Metadata = {
+  title: 'Silver Jewelry - Premium Silver Jewelry Collection',
+  description: 'Discover our exquisite collection of fine silver jewelry, rings, necklaces, and precious gems crafted by Indian artisans.',
+}
+
+export default function RootLayout({
   children,
 }: {
-  children: React.ReactNode;
+  children: React.ReactNode
 }) {
   return (
     <html lang="en">
-      <body>
+      <body className={inter.className} suppressHydrationWarning={true}>
         <AuthProvider>
-          <Navigation />
-          <main className="min-h-screen">
-            {children}
-          </main>
-          <Footer />
+          <div className="relative flex min-h-screen flex-col">
+            <Navigation />
+            <main className="flex-1">{children}</main>
+          </div>
+          <Toaster />
         </AuthProvider>
       </body>
     </html>
-  );
+  )
 }
