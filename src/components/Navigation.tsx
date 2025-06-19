@@ -3,14 +3,16 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { useAuth } from '@/contexts/AuthContext'
+import { useAdmin } from '@/hooks/useAdmin'
 import { Button } from '@/components/ui/button'
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
-import { Menu, Heart, LogOut, Settings } from 'lucide-react'
+import { Menu, Heart, LogOut, Settings, Shield } from 'lucide-react'
 
 export default function Navigation() {
   const { user, signOut } = useAuth()
+  const { isAdmin, canManageProducts, canManageCategories, canManageAdmins } = useAdmin()
   const [isOpen, setIsOpen] = useState(false)
   const [mounted, setMounted] = useState(false)
 
@@ -55,7 +57,6 @@ export default function Navigation() {
       </header>
     )
   }
-
   const NavItems = () => (
     <>
       <Link href="/" className="text-sm font-medium hover:text-amber-600 transition-colors">
@@ -67,15 +68,21 @@ export default function Navigation() {
         <Link href="/bookmarks" className="text-sm font-medium hover:text-amber-600 transition-colors">
           Bookmarks
         </Link>
-      )}      {user?.email === process.env.NEXT_PUBLIC_ADMIN_EMAIL && (
-        <>
-          <Link href="/admin/products" className="text-sm font-medium hover:text-amber-600 transition-colors">
-            Admin Products
-          </Link>
-          <Link href="/admin/categories" className="text-sm font-medium hover:text-amber-600 transition-colors">
-            Admin Categories
-          </Link>
-        </>
+      )}
+      {isAdmin && (
+        <Link href="/admin/users" className="text-sm font-medium hover:text-amber-600 transition-colors bg-amber-50 px-2 py-1 rounded">
+          🛡️ Admin
+        </Link>
+      )}
+      {canManageProducts && (
+        <Link href="/admin/products" className="text-sm font-medium hover:text-amber-600 transition-colors">
+          Products
+        </Link>
+      )}
+      {canManageCategories && (
+        <Link href="/admin/categories" className="text-sm font-medium hover:text-amber-600 transition-colors">
+          Categories
+        </Link>
       )}
     </>
   )
@@ -109,37 +116,57 @@ export default function Navigation() {
                       </AvatarFallback>
                     </Avatar>
                   </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent className="w-56" align="end" forceMount>
-                  <div className="flex items-center justify-start gap-2 p-2">                    <div className="flex flex-col space-y-1 leading-none">
-                      <p className="font-medium">{user.email}</p>                      {user?.email === process.env.NEXT_PUBLIC_ADMIN_EMAIL && (
+                </DropdownMenuTrigger>                <DropdownMenuContent className="w-56" align="end" forceMount>
+                  <div className="flex items-center justify-start gap-2 p-2">
+                    <div className="flex flex-col space-y-1 leading-none">
+                      <p className="font-medium">{user.email}</p>
+                      {isAdmin && (
                         <p className="w-[200px] truncate text-sm text-muted-foreground">
                           Administrator
                         </p>
                       )}
                     </div>
                   </div>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem asChild>
+                  <DropdownMenuSeparator />                  <DropdownMenuItem asChild>
                     <Link href="/bookmarks" className="flex items-center">
                       <Heart className="mr-2 h-4 w-4" />
                       <span>Bookmarks</span>
                     </Link>
-                  </DropdownMenuItem>                  {user?.email === process.env.NEXT_PUBLIC_ADMIN_EMAIL && (
+                  </DropdownMenuItem>
+                  {isAdmin && (
                     <>
+                      <DropdownMenuSeparator />
                       <DropdownMenuItem asChild>
-                        <Link href="/admin/products" className="flex items-center">
-                          <Settings className="mr-2 h-4 w-4" />
-                          <span>Manage Products</span>
-                        </Link>
-                      </DropdownMenuItem>
-                      <DropdownMenuItem asChild>
-                        <Link href="/admin/categories" className="flex items-center">
-                          <Settings className="mr-2 h-4 w-4" />
-                          <span>Manage Categories</span>
+                        <Link href="/admin/users" className="flex items-center">
+                          <Shield className="mr-2 h-4 w-4" />
+                          <span>Admin Dashboard</span>
                         </Link>
                       </DropdownMenuItem>
                     </>
+                  )}
+                  {canManageProducts && (
+                    <DropdownMenuItem asChild>
+                      <Link href="/admin/products" className="flex items-center">
+                        <Settings className="mr-2 h-4 w-4" />
+                        <span>Manage Products</span>
+                      </Link>
+                    </DropdownMenuItem>
+                  )}
+                  {canManageCategories && (
+                    <DropdownMenuItem asChild>
+                      <Link href="/admin/categories" className="flex items-center">
+                        <Settings className="mr-2 h-4 w-4" />
+                        <span>Manage Categories</span>
+                      </Link>
+                    </DropdownMenuItem>
+                  )}
+                  {canManageAdmins && (
+                    <DropdownMenuItem asChild>
+                      <Link href="/admin/users" className="flex items-center">
+                        <Settings className="mr-2 h-4 w-4" />
+                        <span>Manage Admins</span>
+                      </Link>
+                    </DropdownMenuItem>
                   )}
                   <DropdownMenuSeparator />
                   <DropdownMenuItem onClick={signOut} className="text-red-600">

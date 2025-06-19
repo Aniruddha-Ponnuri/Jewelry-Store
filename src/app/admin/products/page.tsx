@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef, useCallback } from 'react'
-import { useAuth } from '@/contexts/AuthContext'
+import { useAdmin } from '@/hooks/useAdmin'
 import { createClient } from '@/lib/supabase/client'
 import { Product } from '@/types/database'
 import { Button } from '@/components/ui/button'
@@ -20,7 +20,7 @@ import { getPublicImageUrl } from '@/lib/utils'
 import Image from 'next/image'
 
 export default function AdminProducts() {
-  const { user, loading: authLoading } = useAuth()
+  const { isAdmin, loading: authLoading } = useAdmin()
   const [products, setProducts] = useState<Product[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -30,8 +30,7 @@ export default function AdminProducts() {
   const [uploading, setUploading] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const supabase = createClient()
-  // Check both email and database flag for admin access
-  const isAdmin = !authLoading && user?.email === process.env.NEXT_PUBLIC_ADMIN_EMAIL
+  // Check admin status from database instead of environment variable
 
   // Product form state
   const [formData, setFormData] = useState({

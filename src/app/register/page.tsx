@@ -142,9 +142,9 @@ export default function Register() {
     if (numbers.length <= 3) {
       return numbers
     } else if (numbers.length <= 6) {
-      return `(${numbers.slice(0, 3)}) ${numbers.slice(3)}`
+      return `${numbers.slice(0, 3)}-${numbers.slice(3)}`
     } else {
-      return `(${numbers.slice(0, 3)}) ${numbers.slice(3, 6)}-${numbers.slice(6, 10)}`
+      return `${numbers.slice(0, 3)}-${numbers.slice(3, 6)}-${numbers.slice(6, 10)}`
     }
   }
 
@@ -209,7 +209,7 @@ export default function Register() {
                   id="phone"
                   name="phone"
                   type="tel"
-                  placeholder="(555) 123-4567"
+                  placeholder="555-123-4567"
                   value={formData.phone}
                   onChange={handlePhoneChange}
                   className="pl-10"

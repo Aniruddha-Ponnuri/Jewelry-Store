@@ -20,9 +20,20 @@ export async function login(prevState: { error?: string } | undefined, formData:
 
   revalidatePath('/', 'layout')
   
-  // Check if user is admin and redirect accordingly
-  if (email === process.env.NEXT_PUBLIC_ADMIN_EMAIL) {
-    redirect('/admin/products')
+  // Check if user is admin from database
+  const { data: { user } } = await supabase.auth.getUser()
+  if (user) {
+    const { data: adminData } = await supabase
+      .from('admins')
+      .select('user_id')
+      .eq('user_id', user.id)
+      .single()
+    
+    if (adminData) {
+      redirect('/admin/products')
+    } else {
+      redirect('/')
+    }
   } else {
     redirect('/')
   }

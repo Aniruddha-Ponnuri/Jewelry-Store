@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
-import { useAuth } from '@/contexts/AuthContext'
+import { useAdmin } from '@/hooks/useAdmin'
 import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -21,7 +21,7 @@ interface Category {
 }
 
 export default function AdminCategories() {
-  const { user, loading: authLoading } = useAuth()
+  const { isAdmin, loading: authLoading } = useAdmin()
   const [categories, setCategories] = useState<Category[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -36,8 +36,7 @@ export default function AdminCategories() {
     emoji: ''
   })
 
-  // Check if user is admin
-  const isAdmin = !authLoading && user?.email === process.env.NEXT_PUBLIC_ADMIN_EMAIL
+  // Check admin status from database instead of environment variable
 
   // Redirect if not admin
   useEffect(() => {
