@@ -4,7 +4,7 @@ import ProductCard from '@/components/ProductCard'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import Link from 'next/link'
-import { Sparkles, Shield, Truck, Heart } from 'lucide-react'
+import { Sparkles} from 'lucide-react'
 
 export default async function HomePage() {
   const supabase = await createClient()
