@@ -155,8 +155,7 @@ export default function AdminCategories() {
               <Plus className="w-4 h-4 mr-2" />
               Add Category
             </Button>
-          </DialogTrigger>
-          <DialogContent className="w-[95vw] sm:max-w-[500px] mx-auto">
+          </DialogTrigger>          <DialogContent className="w-[95vw] sm:max-w-[500px] mx-auto bg-white border shadow-lg">
             <DialogHeader>
               <DialogTitle className="text-base sm:text-lg">
                 {editingCategory ? 'Edit Category' : 'Add New Category'}

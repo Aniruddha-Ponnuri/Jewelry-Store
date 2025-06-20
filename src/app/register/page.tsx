@@ -160,9 +160,8 @@ export default function Register() {
           <div className="mx-auto w-16 h-16 bg-gradient-to-r from-amber-500 to-orange-500 rounded-full flex items-center justify-center mb-4 shadow-lg">
             <span className="text-white font-bold text-2xl">💎</span>
           </div>
-          <CardTitle className="text-2xl sm:text-3xl font-bold text-gray-900">Create Account</CardTitle>
-          <CardDescription className="text-sm sm:text-base text-gray-600">
-            Join Silver Jewelry to discover our exquisite collection
+          <CardTitle className="text-2xl sm:text-3xl font-bold text-gray-900">Create Account</CardTitle>          <CardDescription className="text-sm sm:text-base text-gray-600">
+            Join SilverPalace to discover our exquisite collection
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">

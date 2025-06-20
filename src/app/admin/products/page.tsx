@@ -235,8 +235,7 @@ export default function AdminProducts() {
               <Plus className="w-4 h-4 mr-2" />
               Add Product
             </Button>
-          </DialogTrigger>
-          <DialogContent className="w-[95vw] sm:max-w-[600px] max-h-[90vh] overflow-y-auto mx-auto">
+          </DialogTrigger>          <DialogContent className="w-[95vw] sm:max-w-[600px] max-h-[90vh] overflow-y-auto mx-auto bg-white border shadow-lg">
             <DialogHeader>
               <DialogTitle className="text-base sm:text-lg">
                 {editingProduct ? 'Edit Product' : 'Add New Product'}

@@ -1,4 +1,4 @@
-# 💎 Silver Jewelry E-Commerce Website
+# 💎 SilverPalace E-Commerce Website
 
 A modern, responsive e-commerce platform for silver jewelry built with Next.js 15, TypeScript, and Supabase. Features a comprehensive admin panel, user authentication, product management, and optimized performance across all devices.
 

@@ -115,10 +115,9 @@ export default async function HomePage() {
         <div className="absolute inset-0 opacity-5">
           <div className="absolute inset-0 bg-gradient-to-r from-transparent via-amber-500 to-transparent transform -skew-y-12 scale-150"></div>
         </div>
-        
-        <div className="container mx-auto text-center relative z-10">
+          <div className="container mx-auto text-center relative z-10">
           <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-gray-900 mb-4 sm:mb-6 leading-tight">
-            Silver Jewelry Collection
+            SilverPalace Collection
           </h1>
           <p className="text-base sm:text-lg md:text-xl lg:text-2xl text-gray-700 mb-6 sm:mb-8 max-w-4xl mx-auto leading-relaxed">
             Discover timeless elegance with our handcrafted silver jewelry pieces, 

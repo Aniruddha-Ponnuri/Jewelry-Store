@@ -343,6 +343,59 @@ body {
     transform: translateX(3px);
   }
 
+  /* Enhanced mobile admin section styling */
+  @media (max-width: 640px) {
+    /* Admin mobile buttons */
+    .admin-mobile-primary {
+      display: flex !important;
+      width: 100% !important;
+      padding: 1rem !important;
+      background: linear-gradient(135deg, #f59e0b 0%, #ea580c 100%) !important;
+      color: white !important;
+      border-radius: 0.75rem !important;
+      font-weight: 600 !important;
+      text-decoration: none !important;
+      box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1) !important;
+      transition: all 0.2s ease-in-out !important;
+    }
+    
+    .admin-mobile-primary:hover {
+      transform: translateY(-1px) !important;
+      box-shadow: 0 6px 10px -1px rgb(0 0 0 / 0.15) !important;
+    }
+    
+    .admin-mobile-secondary {
+      display: flex !important;
+      width: 100% !important;
+      padding: 0.75rem !important;
+      background: rgba(251, 191, 36, 0.1) !important;
+      color: #92400e !important;
+      border-radius: 0.5rem !important;
+      font-weight: 500 !important;
+      text-decoration: none !important;
+      border: 1px solid rgba(251, 191, 36, 0.2) !important;
+      transition: all 0.2s ease-in-out !important;
+    }
+    
+    .admin-mobile-secondary:hover {
+      background: rgba(251, 191, 36, 0.2) !important;
+      border-color: rgba(251, 191, 36, 0.3) !important;
+    }
+    
+    /* Admin panel header styling */
+    .bg-gradient-to-r.from-amber-50.to-amber-100 {
+      background: linear-gradient(90deg, #fffbeb 0%, #fef3c7 100%) !important;
+      border: 1px solid #fbbf24 !important;
+    }
+    
+    /* Ensure admin section is visible */
+    .space-y-4.pt-4.border-t-2.border-amber-200 {
+      margin-top: 1rem !important;
+      padding-top: 1rem !important;
+      border-top: 2px solid #fbbf24 !important;
+    }
+  }
+
   /* Text truncation utilities */
   .line-clamp-2 {
     display: -webkit-box;
@@ -613,6 +666,256 @@ body {
   @media (min-width: 640px) {
     .gap-responsive-md {
       gap: 1.5rem;
+    }
+  }
+  /* Mobile-specific fixes for navigation and dialogs */
+  @media (max-width: 768px) {
+    /* Ensure navigation has solid background on mobile */
+    header[class*="sticky"] {
+      background: rgb(255, 255, 255) !important;
+      backdrop-filter: none !important;
+      border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+      box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1) !important;
+    }
+    
+    /* Ensure dialogs have solid backgrounds on mobile */
+    [data-slot="dialog-content"] {
+      background: rgb(255, 255, 255) !important;
+      backdrop-filter: none !important;
+      border: 1px solid rgba(0, 0, 0, 0.1);
+    }
+    
+    /* Ensure dropdown menus are solid on mobile */
+    [data-slot="dropdown-menu-content"] {
+      background: rgb(255, 255, 255) !important;
+      backdrop-filter: none !important;
+      border: 1px solid rgba(0, 0, 0, 0.1);
+    }
+    
+    /* Mobile sheet/sidebar solid background */
+    [data-slot="sheet-content"] {
+      background: rgb(255, 255, 255) !important;
+      backdrop-filter: none !important;
+      border: none !important;
+      box-shadow: -4px 0 6px -1px rgb(0 0 0 / 0.1) !important;
+    }
+    
+    /* Sheet overlay solid */
+    [data-slot="sheet-overlay"] {
+      background: rgba(0, 0, 0, 0.5) !important;
+      backdrop-filter: none !important;
+    }
+  }  /* Mobile sheet overflow prevention - Updated */
+  @media (max-width: 640px) {
+    /* Sheet content constraints */
+    [data-slot="sheet-content"] {
+      max-width: 90vw !important;
+      min-width: 280px !important;
+      background: rgb(255, 255, 255) !important;
+      backdrop-filter: none !important;
+    }
+    
+    /* Prevent horizontal overflow in sheet content */
+    [data-slot="sheet-content"] * {
+      max-width: 100%;
+      word-wrap: break-word;
+      overflow-wrap: break-word;
+    }
+    
+    /* Ensure buttons don't overflow */
+    [data-slot="sheet-content"] button {
+      min-width: 0;
+      flex-shrink: 1;
+    }
+    
+    /* Prevent email text from overflowing */
+    [data-slot="sheet-content"] .text-gray-600 {
+      word-break: break-word;
+      hyphens: auto;
+    }
+    
+    /* Additional mobile fixes for body and viewport */
+    body {
+      overflow-x: hidden !important;
+    }
+    
+    * {
+      max-width: 100vw;
+      box-sizing: border-box;
+    }
+    
+    [role="dialog"] {
+      max-width: 90vw !important;
+      max-height: 100vh !important;
+      overflow: hidden !important;
+      background: rgb(255, 255, 255) !important;
+    }
+    
+    nav a {
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+  }
+  /* Mobile navigation overflow fixes */
+  @media (max-width: 1023px) {
+    /* Ensure mobile sheet doesn't overflow viewport */
+    [data-radix-portal] {
+      overflow: hidden !important;
+    }
+    
+    /* Mobile sheet content constraints */
+    [data-state="open"][data-side="right"] {
+      max-width: min(320px, 90vw) !important;
+      height: 100vh !important;
+      overflow-y: auto !important;
+      overflow-x: hidden !important;
+      background: rgb(255, 255, 255) !important;
+    }
+    
+    /* Mobile navigation header fixes */
+    header {
+      position: sticky !important;
+      top: 0 !important;
+      z-index: 50 !important;
+      width: 100% !important;
+      background: rgb(255, 255, 255) !important;
+      backdrop-filter: none !important;
+      border-bottom: 1px solid rgba(0, 0, 0, 0.1) !important;
+      box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1) !important;
+    }
+    
+    /* Prevent navbar content overflow */
+    header .container {
+      max-width: 100% !important;
+      padding-left: 1rem !important;
+      padding-right: 1rem !important;
+    }
+    
+    /* Mobile sheet scrolling */
+    [data-radix-scroll-area-viewport] {
+      overflow-y: auto !important;
+      overflow-x: hidden !important;
+    }
+  }
+  /* Enhanced mobile navigation fixes */
+  @media (max-width: 768px) {
+    /* Logo text adjustments */
+    header .font-bold {
+      font-size: 1.125rem !important;
+      line-height: 1.5 !important;
+    }
+    
+    /* Ensure navigation container doesn't overflow */
+    header .container {
+      max-width: 100% !important;
+      padding-left: 0.75rem !important;
+      padding-right: 0.75rem !important;
+    }
+    
+    /* Flex item constraints */
+    header .flex.items-center {
+      min-width: 0 !important;
+      flex-shrink: 1 !important;
+    }
+    
+    /* Logo link constraints */
+    header .flex.items-center.space-x-2 {
+      max-width: calc(100vw - 120px) !important;
+      overflow: hidden !important;
+    }
+    
+    /* Avatar and dropdown positioning */
+    header .flex.items-center.space-x-4 {
+      flex-shrink: 0 !important;
+      min-width: fit-content !important;
+    }
+    
+    /* Force all UI components to have solid backgrounds */
+    .bg-background,
+    [data-slot="sheet-content"],
+    [data-slot="dropdown-menu-content"],
+    [data-slot="dialog-content"] {
+      background: rgb(255, 255, 255) !important;
+      backdrop-filter: none !important;
+    }
+  }
+
+  /* Mobile sheet fixes for proper display */
+  @media (max-width: 768px) {
+    /* Sheet content fixes */
+    [data-radix-dialog-content] {
+      max-height: 100vh !important;
+      height: 100vh !important;
+      overflow: hidden !important;
+    }
+    
+    /* Sheet scrollable area */
+    .flex-1.overflow-y-auto {
+      overflow-y: auto !important;
+      overflow-x: hidden !important;
+      height: auto !important;
+      max-height: calc(100vh - 120px) !important;
+    }
+    
+    /* Navigation menu spacing */
+    .flex.flex-col.gap-4 {
+      gap: 1.5rem !important;
+    }
+    
+    /* Admin section visibility */
+    .space-y-4 {
+      margin-bottom: 2rem !important;
+    }
+  }
+
+  /* Final mobile navigation improvements */
+  @media (max-width: 640px) {
+    /* Ensure proper touch targets on mobile */
+    .admin-mobile-primary,
+    .admin-mobile-secondary {
+      min-height: 48px !important;
+      touch-action: manipulation !important;
+      -webkit-tap-highlight-color: transparent !important;
+    }
+    
+    /* Main navigation links mobile styling */
+    .block.text-base.font-medium {
+      padding: 0.75rem 0 !important;
+      min-height: 48px !important;
+      display: flex !important;
+      align-items: center !important;
+    }
+    
+    /* Account section mobile styling */
+    .space-y-3.pt-4.border-t h3 {
+      margin-bottom: 0.75rem !important;
+    }
+    
+    /* Sign out button mobile styling */
+    .w-full.justify-start.text-red-600 {
+      min-height: 48px !important;
+      font-weight: 500 !important;
+    }
+    
+    /* Email display mobile styling */
+    .text-sm.text-gray-600.break-words {
+      word-break: break-all !important;
+      line-height: 1.4 !important;
+      padding: 0.75rem !important;
+    }
+    
+    /* Sheet title styling */
+    .text-lg.font-semibold {
+      color: #1f2937 !important;
+      font-weight: 700 !important;
+    }
+    
+    /* Badge styling in header */
+    .bg-amber-50.text-amber-700.border-amber-200.font-medium {
+      padding: 0.375rem 0.75rem !important;
+      font-size: 0.75rem !important;
+      font-weight: 600 !important;
     }
   }
 }

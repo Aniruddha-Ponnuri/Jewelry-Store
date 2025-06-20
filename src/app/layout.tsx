@@ -13,12 +13,12 @@ const inter = Inter({
 })
 
 export const metadata: Metadata = {
-  title: 'Silver Jewelry - Premium Silver Jewelry Collection',
+  title: 'SilverPalace - Premium Silver Jewelry Collection',
   description: 'Discover our exquisite collection of fine silver jewelry, rings, necklaces, and precious gems crafted by Indian artisans.',
   keywords: 'silver jewelry, indian jewelry, rings, necklaces, earrings, bracelets, handcrafted',
-  authors: [{ name: 'Silver Jewelry' }],
-  creator: 'Silver Jewelry',
-  publisher: 'Silver Jewelry',
+  authors: [{ name: 'SilverPalace' }],
+  creator: 'SilverPalace',
+  publisher: 'SilverPalace',
   formatDetection: {
     email: false,
     address: false,
@@ -34,18 +34,17 @@ export const metadata: Metadata = {
       'max-image-preview': 'large',
       'max-snippet': -1,
     },
-  },
-  openGraph: {
+  },  openGraph: {
     type: 'website',
     locale: 'en_IN',
-    url: 'https://silver-jewelry.com',
-    title: 'Silver Jewelry - Premium Silver Jewelry Collection',
+    url: 'https://silverpalace.com',
+    title: 'SilverPalace - Premium Silver Jewelry Collection',
     description: 'Discover our exquisite collection of fine silver jewelry, rings, necklaces, and precious gems crafted by Indian artisans.',
-    siteName: 'Silver Jewelry',
+    siteName: 'SilverPalace',
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Silver Jewelry - Premium Silver Jewelry Collection',
+    title: 'SilverPalace - Premium Silver Jewelry Collection',
     description: 'Discover our exquisite collection of fine silver jewelry, rings, necklaces, and precious gems crafted by Indian artisans.',
   },
 }
@@ -74,7 +73,7 @@ export default function RootLayout({
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link rel="dns-prefetch" href="https://fonts.googleapis.com" />
       </head>
-      <body className={`${inter.className} antialiased`} suppressHydrationWarning={true}>
+      <body className={`${inter.className} antialiased`}>
         <AuthProvider>
           <div className="relative flex min-h-screen flex-col overflow-x-hidden">
             <Navigation />

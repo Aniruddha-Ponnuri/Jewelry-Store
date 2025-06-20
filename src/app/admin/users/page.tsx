@@ -193,10 +193,9 @@ export default function AdminUsersPage() {
 
   if (!isAdmin) {
     return null
-  }  return (
-    <AdminLayout 
+  }  return (    <AdminLayout 
       title="Admin Management" 
-      description="Manage admin users for the Silver Jewelry website"
+      description="Manage admin users for the SilverPalace website"
     >{/* Messages */}
       {message && (
         <Alert className={`mb-3 sm:mb-4 lg:mb-6 ${message.type === 'error' ? 'border-red-200 bg-red-50' : 'border-green-200 bg-green-50'}`}>

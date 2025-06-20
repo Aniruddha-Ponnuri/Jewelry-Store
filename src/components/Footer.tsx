@@ -14,8 +14,7 @@ export default function Footer() {
             <div className="flex items-center space-x-2">
               <div className="h-8 w-8 bg-gradient-to-r from-amber-500 to-orange-500 rounded-full flex items-center justify-center">
                 <span className="text-white font-bold text-sm">💎</span>
-              </div>
-              <h3 className="font-bold text-xl text-amber-400">Silver Jewelry</h3>
+              </div>              <h3 className="font-bold text-xl text-amber-400">SilverPalace</h3>
             </div>
             <p className="text-gray-300 text-sm leading-relaxed">
               Discover exquisite handcrafted silver jewelry that combines traditional artistry with modern design. 
@@ -118,10 +117,9 @@ export default function Footer() {
                 </div>
               </div>
               <div className="flex items-center space-x-3">
-                <Mail className="h-5 w-5 text-amber-400 flex-shrink-0" />
-                <div className="text-sm text-gray-300">
-                  <a href="mailto:contact@silverjewelry.com" className="hover:text-amber-400 transition-colors duration-200">
-                    contact@silverjewelry.com
+                <Mail className="h-5 w-5 text-amber-400 flex-shrink-0" />                <div className="text-sm text-gray-300">
+                  <a href="mailto:contact@silverpalace.com" className="hover:text-amber-400 transition-colors duration-200">
+                    contact@silverpalace.com
                   </a>
                 </div>
               </div>
@@ -158,7 +156,7 @@ export default function Footer() {
         <div className="border-t border-gray-800 mt-12 pt-8">
           <div className="flex flex-col sm:flex-row justify-between items-center space-y-4 sm:space-y-0">
             <div className="text-gray-400 text-sm text-center sm:text-left">
-              © 2025 Silver Jewelry. All rights reserved. | Made with <Heart className="inline h-4 w-4 text-red-500 mx-1" /> for jewelry enthusiasts
+              © 2025 SilverPalace. All rights reserved. | Made with <Heart className="inline h-4 w-4 text-red-500 mx-1" /> for jewelry enthusiasts
             </div>
             <div className="flex flex-wrap justify-center sm:justify-end gap-6 text-sm">
               <Link href="/privacy" className="text-gray-400 hover:text-amber-400 transition-colors duration-200">

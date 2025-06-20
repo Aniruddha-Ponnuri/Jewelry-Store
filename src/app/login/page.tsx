@@ -53,8 +53,7 @@ export default function Login() {
           <div className="mx-auto w-16 h-16 bg-gradient-to-r from-amber-500 to-orange-500 rounded-full flex items-center justify-center mb-4 shadow-lg">
             <span className="text-white font-bold text-2xl">💎</span>
           </div>
-          <CardTitle className="text-2xl sm:text-3xl font-bold text-gray-900">Welcome Back</CardTitle>
-          <CardDescription className="text-sm sm:text-base text-gray-600">
+          <CardTitle className="text-2xl sm:text-3xl font-bold text-gray-900">Welcome Back</CardTitle>          <CardDescription className="text-sm sm:text-base text-gray-600">
             Sign in to your jewelry collection account
           </CardDescription>
         </CardHeader>
@@ -101,9 +100,8 @@ export default function Login() {
             <div className="relative">
               <div className="absolute inset-0 flex items-center">
                 <span className="w-full border-t border-gray-200" />
-              </div>
-              <div className="relative flex justify-center text-xs uppercase">
-                <span className="bg-white px-2 text-gray-500">New to Silver Jewelry?</span>
+              </div>              <div className="relative flex justify-center text-xs uppercase">
+                <span className="bg-white px-2 text-gray-500">New to SilverPalace?</span>
               </div>
             </div>
             <div className="mt-4">
