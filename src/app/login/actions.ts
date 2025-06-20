@@ -2,7 +2,6 @@
 
 import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
-import { redirect } from 'next/navigation'
 
 export async function login(prevState: { error?: string } | undefined, formData: FormData) {
   const email = formData.get('email') as string
@@ -18,23 +17,10 @@ export async function login(prevState: { error?: string } | undefined, formData:
     return { error: error.message }
   }
 
+  // Revalidate all pages to update auth state
   revalidatePath('/', 'layout')
   
-  // Check if user is admin from database
-  const { data: { user } } = await supabase.auth.getUser()
-  if (user) {
-    const { data: adminData } = await supabase
-      .from('admins')
-      .select('user_id')
-      .eq('user_id', user.id)
-      .single()
-    
-    if (adminData) {
-      redirect('/admin/products')
-    } else {
-      redirect('/')
-    }
-  } else {
-    redirect('/')
-  }
+  // Instead of redirecting immediately, return success
+  // Let the client handle the redirect to avoid refresh issues
+  return { success: true }
 }

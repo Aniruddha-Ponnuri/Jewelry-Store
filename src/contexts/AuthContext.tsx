@@ -134,7 +134,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       </AuthContext.Provider>
     )
   }
-
   const signOut = async () => {
     try {
       await supabase.auth.signOut()
@@ -142,7 +141,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setUserProfile(null)
       setIsAdmin(false)
       setAdminPermissions(null)
-      // Force a page reload to clear any cached state
+      // Use router instead of window.location for better UX
       window.location.href = '/'
     } catch (error) {
       console.error('Logout error:', error)

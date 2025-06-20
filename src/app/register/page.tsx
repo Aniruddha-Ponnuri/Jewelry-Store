@@ -9,7 +9,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Alert, AlertDescription } from '@/components/ui/alert'
-import { Eye, EyeOff, User, Mail, Phone, Lock } from 'lucide-react'
+import { Eye, EyeOff, User, Mail, Phone, Lock, Loader2 } from 'lucide-react'
 
 export default function Register() {
   const [formData, setFormData] = useState({
@@ -121,8 +121,7 @@ export default function Register() {
       const errorMessage = error instanceof Error ? error.message : 'Registration failed. Please try again.'
       
       if (errorMessage.includes('already registered')) {
-        setError('An account with this email already exists. Please sign in instead.')
-      } else if (errorMessage.includes('Invalid email')) {
+        setError('An account with this email already exists. Please sign in instead.')      } else if (errorMessage.includes('Invalid email')) {
         setError('Please enter a valid email address.')
       } else if (errorMessage.includes('Password')) {
         setError('Password must be at least 6 characters long.')
@@ -155,56 +154,62 @@ export default function Register() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-amber-50 to-orange-100 px-4 py-8">
-      <Card className="w-full max-w-md">
-        <CardHeader className="space-y-1">
-          <CardTitle className="text-2xl font-bold text-center">Create Account</CardTitle>          <CardDescription className="text-center">
+    <div className="min-h-screen auth-container">
+      <Card className="auth-card">
+        <CardHeader className="space-y-2 text-center pb-6">
+          <div className="mx-auto w-16 h-16 bg-gradient-to-r from-amber-500 to-orange-500 rounded-full flex items-center justify-center mb-4 shadow-lg">
+            <span className="text-white font-bold text-2xl">💎</span>
+          </div>
+          <CardTitle className="text-2xl sm:text-3xl font-bold text-gray-900">Create Account</CardTitle>
+          <CardDescription className="text-sm sm:text-base text-gray-600">
             Join Silver Jewelry to discover our exquisite collection
           </CardDescription>
         </CardHeader>
-        <CardContent>
-          <form onSubmit={handleRegister} className="space-y-4">
+        <CardContent className="space-y-6">
+          <form onSubmit={handleRegister} className="space-y-5">
             {/* Full Name */}
-            <div className="space-y-2">
-              <Label htmlFor="name">Full Name</Label>
+            <div className="space-y-3">
+              <Label htmlFor="name" className="text-sm font-semibold text-gray-700">Full Name</Label>
               <div className="relative">
-                <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
                 <Input
                   id="name"
                   name="name"
                   type="text"
-                  placeholder="Enter your full name"
+                  placeholder="John Doe"
                   value={formData.name}
                   onChange={handleChange}
-                  className="pl-10"
+                  className="pl-11 h-12 border-gray-200 focus:border-amber-500 focus:ring-amber-500 text-base"
                   required
+                  autoComplete="name"
                 />
               </div>
             </div>
 
             {/* Email */}
-            <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
+            <div className="space-y-3">
+              <Label htmlFor="email" className="text-sm font-semibold text-gray-700">Email Address</Label>
               <div className="relative">
-                <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
                 <Input
                   id="email"
                   name="email"
                   type="email"
-                  placeholder="Enter your email"
+                  placeholder="john@example.com"
                   value={formData.email}
                   onChange={handleChange}
-                  className="pl-10"
+                  className="pl-11 h-12 border-gray-200 focus:border-amber-500 focus:ring-amber-500 text-base"
                   required
+                  autoComplete="email"
                 />
               </div>
             </div>
 
             {/* Phone */}
-            <div className="space-y-2">
-              <Label htmlFor="phone">Phone Number</Label>
+            <div className="space-y-3">
+              <Label htmlFor="phone" className="text-sm font-semibold text-gray-700">Phone Number</Label>
               <div className="relative">
-                <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
                 <Input
                   id="phone"
                   name="phone"
@@ -212,18 +217,19 @@ export default function Register() {
                   placeholder="555-123-4567"
                   value={formData.phone}
                   onChange={handlePhoneChange}
-                  className="pl-10"
+                  className="pl-11 h-12 border-gray-200 focus:border-amber-500 focus:ring-amber-500 text-base"
                   maxLength={14}
                   required
+                  autoComplete="tel"
                 />
               </div>
             </div>
 
             {/* Password */}
-            <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
+            <div className="space-y-3">
+              <Label htmlFor="password" className="text-sm font-semibold text-gray-700">Password</Label>
               <div className="relative">
-                <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
                 <Input
                   id="password"
                   name="password"
@@ -231,27 +237,27 @@ export default function Register() {
                   placeholder="Create a password"
                   value={formData.password}
                   onChange={handleChange}
-                  className="pl-10 pr-10"
+                  className="pl-11 pr-12 h-12 border-gray-200 focus:border-amber-500 focus:ring-amber-500 text-base"
                   required
+                  autoComplete="new-password"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-amber-600 transition-colors p-2"
+                  aria-label={showPassword ? 'Hide password' : 'Show password'}
                 >
-                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
                 </button>
               </div>
-              <p className="text-xs text-gray-600">
+              <p className="text-xs text-gray-500">
                 Password must be at least 6 characters long
               </p>
-            </div>
-
-            {/* Confirm Password */}
-            <div className="space-y-2">
-              <Label htmlFor="confirmPassword">Confirm Password</Label>
+            </div>            {/* Confirm Password */}
+            <div className="space-y-3">
+              <Label htmlFor="confirmPassword" className="text-sm font-semibold text-gray-700">Confirm Password</Label>
               <div className="relative">
-                <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
                 <Input
                   id="confirmPassword"
                   name="confirmPassword"
@@ -259,15 +265,17 @@ export default function Register() {
                   placeholder="Confirm your password"
                   value={formData.confirmPassword}
                   onChange={handleChange}
-                  className="pl-10 pr-10"
+                  className="pl-11 pr-12 h-12 border-gray-200 focus:border-amber-500 focus:ring-amber-500 text-base"
                   required
+                  autoComplete="new-password"
                 />
                 <button
                   type="button"
                   onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-amber-600 transition-colors p-2"
+                  aria-label={showConfirmPassword ? 'Hide confirm password' : 'Show confirm password'}
                 >
-                  {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  {showConfirmPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
                 </button>
               </div>
             </div>
@@ -275,37 +283,48 @@ export default function Register() {
             {/* Error Message */}
             {error && (
               <Alert variant="destructive">
-                <AlertDescription>{error}</AlertDescription>
+                <AlertDescription className="text-sm">{error}</AlertDescription>
               </Alert>
-            )}
-
-            {/* Submit Button */}
-            <Button type="submit" className="w-full" disabled={loading}>
+            )}            {/* Submit Button */}
+            <Button 
+              type="submit" 
+              className="w-full h-12 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-semibold text-base shadow-lg transition-all duration-200 transform hover:scale-[1.02]" 
+              disabled={loading}
+            >
               {loading ? (
                 <>
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                  Creating Account...
+                  <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                  <span>Creating Account...</span>
                 </>
               ) : (
-                'Create Account'
+                <span>Create Account</span>
               )}
             </Button>
           </form>
-
-          {/* Sign In Link */}
-          <div className="mt-4 text-center text-sm">
-            Already have an account?{' '}
-            <Link href="/login" className="text-blue-600 hover:underline font-medium">
-              Sign in
-            </Link>
+          
+          <div className="text-center">
+            <div className="relative">
+              <div className="absolute inset-0 flex items-center">
+                <span className="w-full border-t border-gray-200" />
+              </div>
+              <div className="relative flex justify-center text-xs uppercase">
+                <span className="bg-white px-2 text-gray-500">Already have an account?</span>
+              </div>
+            </div>            <div className="mt-4">
+              <Link href="/login">
+                <Button variant="outline" className="w-full h-12 border-amber-200 text-amber-700 hover:bg-amber-50 transition-all duration-200">
+                  Sign In
+                </Button>
+              </Link>
+            </div>
           </div>
 
           {/* Terms and Privacy */}
           <div className="mt-4 text-center text-xs text-gray-600">
             By creating an account, you agree to our{' '}
-            <a href="#" className="text-blue-600 hover:underline">Terms of Service</a>{' '}
+            <a href="#" className="text-blue-600 hover:text-blue-700 hover:underline transition-colors">Terms of Service</a>{' '}
             and{' '}
-            <a href="#" className="text-blue-600 hover:underline">Privacy Policy</a>
+            <a href="#" className="text-blue-600 hover:text-blue-700 hover:underline transition-colors">Privacy Policy</a>
           </div>
         </CardContent>
       </Card>

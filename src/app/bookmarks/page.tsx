@@ -61,22 +61,23 @@ export default function BookmarksPage() {
       setProducts(prev => prev.filter(p => p.product_id !== productId))
     }
   }
-
   if (loading) {
     return (
-      <div className="container mx-auto px-4 py-8">
+      <div className="container mx-auto px-3 sm:px-4 py-4 sm:py-6 lg:py-8">
         <div className="flex justify-center items-center min-h-[300px]">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-amber-600"></div>
+          <div className="text-center space-y-4">
+            <div className="animate-spin rounded-full h-10 w-10 sm:h-12 sm:w-12 border-b-2 border-amber-600 mx-auto"></div>
+            <p className="text-sm sm:text-base text-gray-600">Loading your bookmarks...</p>
+          </div>
         </div>
       </div>
     )
   }
-
   return (
-    <div className="container mx-auto px-4 py-8">
-      <div className="mb-8 text-center">
-        <h1 className="text-3xl font-bold">Your Bookmarked Jewelry</h1>
-        <p className="text-muted-foreground">
+    <div className="container mx-auto px-3 sm:px-4 py-4 sm:py-6 lg:py-8">
+      <div className="mb-6 sm:mb-8 text-center">
+        <h1 className="text-2xl sm:text-3xl font-bold mb-2">Your Bookmarked Jewelry</h1>
+        <p className="text-sm sm:text-base text-muted-foreground">
           {products.length > 0 
             ? "Your favorite pieces all in one place" 
             : "You haven't bookmarked any pieces yet"}
@@ -84,15 +85,16 @@ export default function BookmarksPage() {
       </div>
 
       {products.length === 0 ? (
-        <Card className="max-w-2xl mx-auto">
+        <Card className="max-w-2xl mx-auto shadow-lg">
           <CardHeader>
-            <CardTitle className="text-center">No Bookmarks Yet</CardTitle>
+            <CardTitle className="text-center text-lg sm:text-xl">No Bookmarks Yet</CardTitle>
           </CardHeader>
-          <CardContent className="flex flex-col items-center gap-6 text-center">
-            <HeartOff className="h-16 w-16 text-amber-600" />            <p className="text-lg">
+          <CardContent className="flex flex-col items-center gap-4 sm:gap-6 text-center p-4 sm:p-6">
+            <HeartOff className="h-12 w-12 sm:h-16 sm:w-16 text-amber-600" />            
+            <p className="text-base sm:text-lg text-gray-600">
               You haven&apos;t saved any jewelry pieces to your bookmarks yet.
             </p>
-            <Button asChild>
+            <Button asChild className="touch-target">
               <Link href="/products">
                 Browse Our Collection
               </Link>
@@ -100,19 +102,21 @@ export default function BookmarksPage() {
           </CardContent>
         </Card>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6 lg:gap-8">
           {products.map((product) => (
             <div key={product.product_id} className="relative group">
               <ProductCard 
                 product={product} 
                 isBookmarked={true}
                 onBookmarkChange={() => removeBookmark(product.product_id)}
+                priority={false}
               />
               <Button
                 variant="ghost"
                 size="sm"
-                className="absolute top-2 right-2 bg-white/80 hover:bg-white opacity-0 group-hover:opacity-100 transition-opacity"
+                className="absolute top-2 right-2 bg-white/90 hover:bg-white shadow-sm opacity-0 group-hover:opacity-100 transition-all duration-200 touch-target backdrop-blur-sm"
                 onClick={() => removeBookmark(product.product_id)}
+                aria-label={`Remove ${product.name} from bookmarks`}
               >
                 <HeartOff className="h-4 w-4 text-red-500" />
               </Button>

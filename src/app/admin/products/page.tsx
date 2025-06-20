@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import AdminLayout from '@/components/AdminLayout'
 import { Switch } from '@/components/ui/switch'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
@@ -213,7 +214,6 @@ export default function AdminProducts() {
     }
     setIsDialogOpen(true)
   }
-
   if (authLoading || loading) {
     return <div className="flex items-center justify-center min-h-screen">Loading...</div>
   }
@@ -221,42 +221,45 @@ export default function AdminProducts() {
   if (!isAdmin) {
     return <div className="flex items-center justify-center min-h-screen">Access Denied</div>
   }
-
   return (
-    <div className="container mx-auto px-4 py-8">
-      <div className="flex justify-between items-center mb-8">
-        <div>
-          <h1 className="text-3xl font-bold">Product Management</h1>
-          <p className="text-muted-foreground">Manage your jewelry inventory</p>
+    <AdminLayout 
+      title="Product Management" 
+      description="Manage your jewelry inventory"
+    >      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start mb-4 sm:mb-6 lg:mb-8 gap-3 sm:gap-4">
+        <div className="sm:hidden">
+          {/* Mobile spacing placeholder */}
         </div>
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogTrigger asChild>
-            <Button onClick={resetForm}>
+            <Button onClick={resetForm} className="w-full sm:w-auto" size="sm">
               <Plus className="w-4 h-4 mr-2" />
               Add Product
             </Button>
           </DialogTrigger>
-          <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
+          <DialogContent className="w-[95vw] sm:max-w-[600px] max-h-[90vh] overflow-y-auto mx-auto">
             <DialogHeader>
-              <DialogTitle>
+              <DialogTitle className="text-base sm:text-lg">
                 {editingProduct ? 'Edit Product' : 'Add New Product'}
               </DialogTitle>
-              <DialogDescription>
+              <DialogDescription className="text-sm">
                 {editingProduct ? 'Update the product information below.' : 'Fill in the product details below.'}
               </DialogDescription>
             </DialogHeader>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
+            <form onSubmit={handleSubmit} className="space-y-3 sm:space-y-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="name">Product Name</Label>
+                  <Label htmlFor="name" className="text-sm">Product Name</Label>
                   <Input
                     id="name"
                     value={formData.name}
                     onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                     required
+                    className="text-sm"
                   />
-                </div>                <div className="space-y-2">
-                  <Label htmlFor="price">Price (₹)</Label>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="price" className="text-sm">Price (₹)</Label>
                   <Input
                     id="price"
                     type="number"
@@ -264,22 +267,22 @@ export default function AdminProducts() {
                     value={formData.price}
                     onChange={(e) => setFormData({ ...formData, price: e.target.value })}
                     required
+                    className="text-sm"
                   />
                 </div>
               </div>
               
               <div className="space-y-2">
-                <Label htmlFor="description">Description</Label>
+                <Label htmlFor="description" className="text-sm">Description</Label>
                 <Textarea
                   id="description"
                   value={formData.description}
                   onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                   rows={3}
+                  className="text-sm"
                 />
-              </div>
-
-              <div className="space-y-2">
-                <Label>Product Image</Label>
+              </div>              <div className="space-y-2">
+                <Label className="text-sm">Product Image</Label>
                 <div className="space-y-2">
                   <Input
                     type="file"
@@ -291,20 +294,23 @@ export default function AdminProducts() {
                       }
                     }}
                     disabled={uploading}
+                    className="text-sm"
                   />
-                  {uploading && <p className="text-sm text-muted-foreground">Uploading image...</p>}
-                  
-                  {/* Show current image if editing */}
+                  {uploading && <p className="text-xs text-muted-foreground">Uploading image...</p>}
+                    {/* Show current image if editing */}
                   {editingProduct?.image_path && !imageFile && (
                     <div className="mt-2">
                       <Image 
                         src={getPublicImageUrl(editingProduct.image_path) || '/placeholder-jewelry.jpg'}
                         alt="Current product image" 
-                        width={128}
-                        height={128}
+                        width={96}
+                        height={96}
                         className="object-cover rounded-md"
+                        sizes="96px"
+                        priority={false}
+                        loading="lazy"
                       />
-                      <p className="text-sm text-muted-foreground mt-1">Current image</p>
+                      <p className="text-xs text-muted-foreground mt-1">Current image</p>
                     </div>
                   )}
                   
@@ -314,21 +320,24 @@ export default function AdminProducts() {
                       <Image 
                         src={URL.createObjectURL(imageFile)}
                         alt="New product image preview" 
-                        width={128}
-                        height={128}
+                        width={96}
+                        height={96}
                         className="object-cover rounded-md"
+                        sizes="96px"
+                        priority={false}
+                        loading="lazy"
                       />
-                      <p className="text-sm text-muted-foreground mt-1">New image preview</p>
+                      <p className="text-xs text-muted-foreground mt-1">New image preview</p>
                     </div>
                   )}
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="category">Category</Label>
+                  <Label htmlFor="category" className="text-sm">Category</Label>
                   <Select value={formData.category} onValueChange={(value) => setFormData({ ...formData, category: value })}>
-                    <SelectTrigger>
+                    <SelectTrigger className="text-sm">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -341,9 +350,9 @@ export default function AdminProducts() {
                   </Select>
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="material">Material</Label>
+                  <Label htmlFor="material" className="text-sm">Material</Label>
                   <Select value={formData.material} onValueChange={(value) => setFormData({ ...formData, material: value })}>
-                    <SelectTrigger>
+                    <SelectTrigger className="text-sm">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -356,24 +365,26 @@ export default function AdminProducts() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="weight">Weight (grams)</Label>
+                  <Label htmlFor="weight" className="text-sm">Weight (grams)</Label>
                   <Input
                     id="weight"
                     type="number"
                     step="0.01"
                     value={formData.weight}
                     onChange={(e) => setFormData({ ...formData, weight: e.target.value })}
+                    className="text-sm"
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="gemstone">Gemstone</Label>
+                  <Label htmlFor="gemstone" className="text-sm">Gemstone</Label>
                   <Input
                     id="gemstone"
                     value={formData.gemstone}
                     onChange={(e) => setFormData({ ...formData, gemstone: e.target.value })}
                     placeholder="e.g., Diamond, Ruby"
+                    className="text-sm"
                   />
                 </div>
               </div>
@@ -384,83 +395,84 @@ export default function AdminProducts() {
                   checked={formData.is_in_stock}
                   onCheckedChange={(checked) => setFormData({ ...formData, is_in_stock: checked })}
                 />
-                <Label htmlFor="in-stock">In Stock</Label>
+                <Label htmlFor="in-stock" className="text-sm">In Stock</Label>
               </div>
 
               {error && (
                 <Alert variant="destructive">
-                  <AlertDescription>{error}</AlertDescription>
+                  <AlertDescription className="text-sm">{error}</AlertDescription>
                 </Alert>
-              )}
-
-              <div className="flex justify-end space-x-2">
-                <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
+              )}              <div className="flex flex-col-reverse sm:flex-row gap-2 sm:justify-end">
+                <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)} className="w-full sm:w-auto">
                   Cancel
                 </Button>
-                <Button type="submit" disabled={loading || uploading}>
+                <Button type="submit" disabled={loading || uploading} className="w-full sm:w-auto">
                   {loading || uploading ? 'Saving...' : editingProduct ? 'Update' : 'Create'}
                 </Button>
               </div>
             </form>
           </DialogContent>
         </Dialog>
-      </div>
-
-      <div className="grid gap-6">
+      </div>      <div className="grid gap-3 sm:gap-4 lg:gap-6">
         {products.map((product) => (
           <Card key={product.product_id}>
-            <CardHeader>
-              <div className="flex justify-between items-start">
-                <div className="flex gap-4">
-                  {product.image_path && (
+            <CardHeader className="pb-3 sm:pb-4">
+              <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-3 sm:gap-4">
+                <div className="flex gap-3 sm:gap-4 flex-1 min-w-0">                  {product.image_path && (
                     <Image 
                       src={getPublicImageUrl(product.image_path) || '/placeholder-jewelry.jpg'}
                       alt={product.name}
-                      width={80}
-                      height={80}
-                      className="object-cover rounded-md"
+                      width={60}
+                      height={60}
+                      className="object-cover rounded-md flex-shrink-0 sm:w-[80px] sm:h-[80px]"
+                      sizes="(max-width: 640px) 60px, 80px"
+                      priority={false}
+                      loading="lazy"
                     />
                   )}
-                  <div>
-                    <CardTitle className="flex items-center gap-2">
-                      {product.name}
+                  <div className="min-w-0 flex-1">
+                    <CardTitle className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2 text-base sm:text-lg">
+                      <span className="truncate">{product.name}</span>
                       {!product.is_in_stock && (
-                        <Badge variant="destructive">Out of Stock</Badge>
+                        <Badge variant="destructive" className="text-xs w-fit">Out of Stock</Badge>
                       )}
                     </CardTitle>
-                    <CardDescription>₹{product.price}</CardDescription>
+                    <CardDescription className="text-sm sm:text-base font-medium">₹{product.price}</CardDescription>
                   </div>
                 </div>
-                <div className="flex space-x-2">
+                <div className="flex gap-2 sm:flex-col lg:flex-row">
                   <Button
                     variant="outline"
                     size="sm"
                     onClick={() => openEditDialog(product)}
+                    className="flex-1 sm:flex-initial text-xs"
                   >
-                    <Edit className="w-4 h-4" />
+                    <Edit className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-0 lg:mr-1" />
+                    <span className="sm:hidden lg:inline">Edit</span>
                   </Button>
                   <Button
                     variant="destructive"
                     size="sm"
                     onClick={() => deleteProduct(product.product_id)}
+                    className="flex-1 sm:flex-initial text-xs"
                   >
-                    <Trash2 className="w-4 h-4" />
+                    <Trash2 className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-0 lg:mr-1" />
+                    <span className="sm:hidden lg:inline">Delete</span>
                   </Button>
                 </div>
               </div>
             </CardHeader>
-            <CardContent>
-              <p className="text-sm text-muted-foreground mb-2">{product.description}</p>
-              <div className="flex gap-4 text-sm">
-                <span><strong>Category:</strong> {product.category}</span>
-                <span><strong>Material:</strong> {product.material}</span>
-                {product.weight && <span><strong>Weight:</strong> {product.weight}g</span>}
-                {product.gemstone && <span><strong>Gemstone:</strong> {product.gemstone}</span>}
+            <CardContent className="pt-0">              <p className="text-xs sm:text-sm text-muted-foreground mb-2 line-clamp-2">{product.description}</p>
+              <div className="grid grid-cols-2 sm:flex sm:flex-wrap gap-1 sm:gap-4 text-xs sm:text-sm">
+                <span className="truncate"><strong>Category:</strong> {product.category}</span>
+                <span className="truncate"><strong>Material:</strong> {product.material}</span>
+                {product.weight && <span className="truncate"><strong>Weight:</strong> {product.weight}g</span>}
+                {product.gemstone && <span className="truncate"><strong>Gemstone:</strong> {product.gemstone}</span>}
               </div>
             </CardContent>
           </Card>
         ))}
       </div>
-    </div>
+    </AdminLayout>
   )
 }

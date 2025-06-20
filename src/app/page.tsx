@@ -4,12 +4,30 @@ import ProductCard from '@/components/ProductCard'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import Link from 'next/link'
-import { Sparkles} from 'lucide-react'
+import { Sparkles, ArrowRight } from 'lucide-react'
+import { Suspense } from 'react'
 
-export default async function HomePage() {
+// Loading component for featured products
+function FeaturedProductsSkeleton() {
+  return (
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 lg:gap-8">
+      {Array.from({ length: 6 }).map((_, i) => (
+        <div key={i} className="animate-pulse">
+          <div className="bg-gray-200 aspect-square rounded-lg mb-3"></div>
+          <div className="space-y-2">
+            <div className="h-4 bg-gray-200 rounded w-3/4"></div>
+            <div className="h-3 bg-gray-200 rounded w-1/2"></div>
+            <div className="h-6 bg-gray-200 rounded w-1/3"></div>
+          </div>
+        </div>
+      ))}
+    </div>
+  )
+}
+
+async function FeaturedProducts() {
   const supabase = await createClient()
   
-  // Fetch featured products with error handling
   const { data: featuredProducts, error } = await supabase
     .from('products')
     .select('*')
@@ -17,84 +35,128 @@ export default async function HomePage() {
     .order('created_at', { ascending: false })
     .limit(6)
 
-  // Handle error silently for production, you can add proper error handling here
+  if (error || !featuredProducts || featuredProducts.length === 0) {
+    return null
+  }
 
-  const categories = [
+  return (
+    <section className="py-12 sm:py-16 px-3 sm:px-4 bg-white">
+      <div className="container mx-auto">
+        <div className="text-center mb-8 sm:mb-12">
+          <h2 className="text-2xl sm:text-3xl font-bold mb-3 sm:mb-4 text-gray-900">
+            Featured Products
+          </h2>
+          <p className="text-sm sm:text-base text-gray-600 max-w-2xl mx-auto leading-relaxed">
+            Discover our most popular and newest jewelry pieces, carefully selected for their exceptional beauty and craftsmanship.
+          </p>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 lg:gap-8">
+          {featuredProducts.map((product: Product) => (
+            <ProductCard key={product.product_id} product={product} />
+          ))}
+        </div>
+        <div className="text-center mt-8 sm:mt-12">
+          <Button size="lg" asChild className="touch-target group">
+            <Link href="/products" className="flex items-center justify-center gap-2">
+              <span className="text-sm sm:text-base">View All Products</span>
+              <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+            </Link>
+          </Button>
+        </div>
+      </div>
+    </section>
+  )
+}
+
+export default async function HomePage() {
+  const supabase = await createClient()
+  
+  // Fetch categories from Supabase
+  const { data: categoriesFromDB } = await supabase
+    .from('categories')
+    .select('name')
+    .order('name')
+
+  // Fallback categories if none exist in database
+  const fallbackCategories = [
     { name: 'Rings', emoji: '💍', href: '/products?category=rings' },
     { name: 'Necklaces', emoji: '📿', href: '/products?category=necklaces' },
     { name: 'Earrings', emoji: '👂', href: '/products?category=earrings' },
     { name: 'Bracelets', emoji: '💎', href: '/products?category=bracelets' },
   ]
 
+  // Use categories from DB if available, otherwise use fallback
+  const categories = categoriesFromDB && categoriesFromDB.length > 0 
+    ? categoriesFromDB.map(cat => ({
+        name: cat.name,
+        emoji: getEmojiForCategory(cat.name),
+        href: `/products?category=${cat.name.toLowerCase()}`
+      }))
+    : fallbackCategories
+
+  // Helper function to get emoji for category
+  function getEmojiForCategory(categoryName: string): string {
+    const emojiMap: { [key: string]: string } = {
+      'rings': '💍',
+      'necklaces': '📿',
+      'earrings': '👂',
+      'bracelets': '💎',
+      'pendants': '🔗',
+      'chains': '⛓️',
+    }
+    return emojiMap[categoryName.toLowerCase()] || '💎'
+  }
+
   return (
     <div className="flex flex-col min-h-screen">
       {/* Hero Section */}
-      <section className="relative bg-gradient-to-r from-amber-50 to-orange-100 py-20 px-4">
-        <div className="container mx-auto text-center">
-          <h1 className="text-4xl md:text-6xl font-bold text-gray-900 mb-6">
+      <section className="relative bg-gradient-to-br from-amber-50 via-orange-50 to-yellow-100 py-12 sm:py-16 lg:py-20 px-3 sm:px-4 overflow-hidden">
+        {/* Background Pattern */}
+        <div className="absolute inset-0 opacity-5">
+          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-amber-500 to-transparent transform -skew-y-12 scale-150"></div>
+        </div>
+        
+        <div className="container mx-auto text-center relative z-10">
+          <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-gray-900 mb-4 sm:mb-6 leading-tight">
             Silver Jewelry Collection
           </h1>
-          <p className="text-xl md:text-2xl text-gray-700 mb-8 max-w-3xl mx-auto">
+          <p className="text-base sm:text-lg md:text-xl lg:text-2xl text-gray-700 mb-6 sm:mb-8 max-w-4xl mx-auto leading-relaxed">
             Discover timeless elegance with our handcrafted silver jewelry pieces, 
             made with the finest materials and traditional Indian craftsmanship.
           </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Button size="lg" asChild>
-              <Link href="/products">
-                <Sparkles className="mr-2 h-5 w-5" />
-                Shop Collection
+          <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center max-w-md sm:max-w-none mx-auto">
+            <Button size="lg" asChild className="touch-target group">
+              <Link href="/products" className="flex items-center justify-center gap-2">
+                <Sparkles className="h-4 w-4 sm:h-5 sm:w-5 transition-transform group-hover:scale-110" />
+                <span className="text-sm sm:text-base">Shop Collection</span>
               </Link>
             </Button>
-            <Button variant="outline" size="lg" asChild>
-              <Link href="/products?category=rings">
-                View Rings
+            <Button variant="outline" size="lg" asChild className="touch-target">
+              <Link href={`/products?category=${categories[Math.floor(Math.random() * categories.length)].name.toLowerCase()}`} className="flex items-center justify-center">
+              <span className="text-sm sm:text-base">View {categories[Math.floor(Math.random() * categories.length)].name}</span>
               </Link>
             </Button>
           </div>
         </div>
       </section>
 
-      {/* Features Section */}
-      {/* <section className="py-16 px-4 bg-white">
-        <div className="container mx-auto">
-          <h2 className="text-3xl font-bold text-center mb-12">Why Choose Silver Jewelry?</h2>
-          <div className="grid md:grid-cols-3 gap-8">
-            <Card className="text-center">
-              <CardContent className="pt-6">
-                <Shield className="h-12 w-12 text-amber-600 mx-auto mb-4" />
-                <h3 className="text-xl font-semibold mb-2">Quality Assurance</h3>
-                <p className="text-gray-600">Every piece comes with hallmark certification and quality guarantee with free maintenance.</p>
-              </CardContent>
-            </Card>
-            <Card className="text-center">
-              <CardContent className="pt-6">
-                <Truck className="h-12 w-12 text-amber-600 mx-auto mb-4" />
-                <h3 className="text-xl font-semibold mb-2">Free Delivery</h3>
-                <p className="text-gray-600">Complimentary shipping across India with secure, insured delivery to your doorstep.</p>
-              </CardContent>
-            </Card>
-            <Card className="text-center">
-              <CardContent className="pt-6">
-                <Heart className="h-12 w-12 text-amber-600 mx-auto mb-4" />
-                <h3 className="text-xl font-semibold mb-2">Handcrafted Quality</h3>
-                <p className="text-gray-600">Each piece is meticulously handcrafted by skilled Indian artisans using premium silver.</p>
-              </CardContent>
-            </Card>
-          </div>
-        </div>
-      </section> */}
-
       {/* Categories Section */}
-      <section className="py-16 px-4 bg-gray-50">
+      <section className="py-12 sm:py-16 px-3 sm:px-4 bg-gray-50">
         <div className="container mx-auto">
-          <h2 className="text-3xl font-bold text-center mb-12">Shop by Category</h2>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+          <h2 className="text-2xl sm:text-3xl font-bold text-center mb-8 sm:mb-12 text-gray-900">
+            Shop by Category
+          </h2>
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
             {categories.map((category) => (
-              <Link key={category.name} href={category.href}>
-                <Card className="hover:shadow-lg transition-all duration-300 hover:scale-105 cursor-pointer">
-                  <CardContent className="p-6 text-center">
-                    <div className="text-4xl mb-4">{category.emoji}</div>
-                    <h3 className="font-semibold text-lg">{category.name}</h3>
+              <Link key={category.name} href={category.href} className="group">
+                <Card className="hover:shadow-lg transition-all duration-300 hover:scale-105 cursor-pointer group-focus:ring-2 group-focus:ring-amber-500 group-focus:ring-offset-2">
+                  <CardContent className="p-4 sm:p-6 text-center">
+                    <div className="text-3xl sm:text-4xl mb-3 sm:mb-4 group-hover:scale-110 transition-transform duration-300">
+                      {category.emoji}
+                    </div>
+                    <h3 className="font-semibold text-base sm:text-lg text-gray-900">
+                      {category.name}
+                    </h3>
                   </CardContent>
                 </Card>
               </Link>
@@ -104,30 +166,23 @@ export default async function HomePage() {
       </section>
 
       {/* Featured Products */}
-      {featuredProducts && featuredProducts.length > 0 && !error && (
-        <section className="py-16 px-4">
+      <Suspense fallback={
+        <section className="py-12 sm:py-16 px-3 sm:px-4 bg-white">
           <div className="container mx-auto">
-            <div className="text-center mb-12">
-              <h2 className="text-3xl font-bold mb-4">Featured Products</h2>
-              <p className="text-gray-600 max-w-2xl mx-auto">
-                Discover our most popular and newest jewelry pieces, carefully selected for their exceptional beauty and craftsmanship.
+            <div className="text-center mb-8 sm:mb-12">
+              <h2 className="text-2xl sm:text-3xl font-bold mb-3 sm:mb-4 text-gray-900">
+                Featured Products
+              </h2>
+              <p className="text-sm sm:text-base text-gray-600 max-w-2xl mx-auto leading-relaxed">
+                Loading our latest featured products...
               </p>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-              {featuredProducts.map((product: Product) => (
-                <ProductCard key={product.product_id} product={product} />
-              ))}
-            </div>
-            <div className="text-center mt-12">
-              <Button size="lg" asChild>
-                <Link href="/products">
-                  View All Products
-                </Link>
-              </Button>
-            </div>
+            <FeaturedProductsSkeleton />
           </div>
         </section>
-      )}
+      }>
+        <FeaturedProducts />
+      </Suspense>
     </div>
   )
 }
