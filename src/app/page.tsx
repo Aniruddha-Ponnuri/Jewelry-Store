@@ -55,7 +55,7 @@ export default async function HomePage() {
       </section>
 
       {/* Features Section */}
-      <section className="py-16 px-4 bg-white">
+      {/* <section className="py-16 px-4 bg-white">
         <div className="container mx-auto">
           <h2 className="text-3xl font-bold text-center mb-12">Why Choose Silver Jewelry?</h2>
           <div className="grid md:grid-cols-3 gap-8">
@@ -82,7 +82,7 @@ export default async function HomePage() {
             </Card>
           </div>
         </div>
-      </section>
+      </section> */}
 
       {/* Categories Section */}
       <section className="py-16 px-4 bg-gray-50">
