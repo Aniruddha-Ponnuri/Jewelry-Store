@@ -83,10 +83,9 @@ export default function ClientNavigation() {
                   <span className="text-sm font-semibold text-amber-700">Admin Panel</span>
                 </div>
               </div>
-              
-              {/* Admin Dashboard - Primary Action */}
+                {/* Admin Dashboard - Primary Action */}
               <DropdownMenuItem asChild>
-                <Link href="/admin/users" className="admin-dropdown-primary">
+                <Link href="/admin" className="admin-dropdown-primary">
                   <Shield className="mr-3 h-5 w-5" />
                   <span className="font-semibold">🛡️ Admin Dashboard</span>
                 </Link>
@@ -103,6 +102,12 @@ export default function ClientNavigation() {
                 <Link href="/admin/categories" className="dropdown-item-custom admin-dropdown-secondary">
                   <FolderOpen className="mr-3 h-4 w-4 text-amber-600" />
                   <span className="font-medium">📂 Manage Categories</span>
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link href="/admin/users" className="dropdown-item-custom admin-dropdown-secondary">
+                  <Shield className="mr-3 h-4 w-4 text-amber-600" />
+                  <span className="font-medium">👥 Manage Admins</span>
                 </Link>
               </DropdownMenuItem>
             </>
