@@ -15,19 +15,51 @@ export async function createClient() {
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
       cookies: {
-        get: (name: string) => cookieStore.get(name)?.value,
-        set: (name: string, value: string, options: CookieOptions) => {
+        get: (name: string) => cookieStore.get(name)?.value,        set: (name: string, value: string, options: CookieOptions) => {
           try {
             cookieStore.set({ name, value, ...options })
-          } catch (error) {
-            console.error(`Error setting cookie "${name}":`, error)
+          } catch {
+            // In read-only contexts, we can't set cookies, so we silently ignore
+            // This is expected behavior for SSG pages
           }
         },
         remove: (name: string, options: CookieOptions) => {
           try {
             cookieStore.set({ name, value: '', ...options, maxAge: 0 })
-          } catch (error) {
-            console.error(`Error removing cookie "${name}":`, error)
+          } catch {
+            // In read-only contexts, we can't remove cookies, so we silently ignore
+            // This is expected behavior for SSG pages
+          }
+        },
+      },
+    }
+  )
+}
+
+/** Creates a Supabase client for logout operations with enhanced cookie clearing */
+export async function createLogoutClient() {
+  const cookieStore = await cookies()
+
+  return createServerClient<Database>(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        get: (name: string) => cookieStore.get(name)?.value,        set: (name: string, value: string, options: CookieOptions) => {
+          try {
+            cookieStore.set({ name, value, ...options })
+          } catch {
+            // During logout, we want to continue even if setting fails
+            console.warn(`Warning: Could not set cookie "${name}" during logout`)
+          }
+        },
+        remove: (name: string, options: CookieOptions) => {
+          try {
+            // Force remove with multiple strategies
+            cookieStore.set({ name, value: '', ...options, maxAge: 0 })
+            cookieStore.delete(name)
+          } catch {
+            console.warn(`Warning: Could not remove cookie "${name}" during logout`)
           }
         },
       },

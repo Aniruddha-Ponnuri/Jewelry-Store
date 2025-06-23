@@ -118,7 +118,7 @@ export default function Footer() {
               </div>
               <div className="flex items-center space-x-3">
                 <Mail className="h-5 w-5 text-amber-400 flex-shrink-0" />                <div className="text-sm text-gray-300">
-                  <a href="mailto:contact@silverpalace.com" className="hover:text-amber-400 transition-colors duration-200">
+                  <a href="mailto:contact@jewelry-store-swart.vercel.app" className="hover:text-amber-400 transition-colors duration-200">
                     contact@silverpalace.com
                   </a>
                 </div>

@@ -5,12 +5,27 @@ import { useAdmin } from '@/hooks/useAdmin'
 import { Button } from '@/components/ui/button'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
-import { Heart, LogOut, Shield, Package, FolderOpen } from 'lucide-react'
+import { Heart, LogOut, Shield, Package, FolderOpen, Loader2 } from 'lucide-react'
 import Link from 'next/link'
+import { useState } from 'react'
 
 export default function ClientNavigation() {
   const { user, signOut } = useAuth()
   const { isAdmin } = useAdmin()
+  const [isLoggingOut, setIsLoggingOut] = useState(false)
+
+  const handleSignOut = async () => {
+    setIsLoggingOut(true)
+    try {
+      console.log('Starting logout process from dropdown...')
+      await signOut()
+      console.log('Logout completed successfully')
+    } catch (error) {
+      console.error('Dropdown logout error:', error)
+      // Force reload as fallback
+      window.location.href = '/'
+    }
+  }
 
   if (!user) {
     return (
@@ -91,11 +106,14 @@ export default function ClientNavigation() {
                 </Link>
               </DropdownMenuItem>
             </>
-          )}
-          <div className="dropdown-separator-custom"></div>
-          <DropdownMenuItem onClick={signOut} className="dropdown-item-custom text-red-600 hover:bg-red-50">
-            <LogOut className="mr-3 h-4 w-4" />
-            <span>Log out</span>
+          )}          <div className="dropdown-separator-custom"></div>
+          <DropdownMenuItem onClick={handleSignOut} className="dropdown-item-custom text-red-600 hover:bg-red-50" disabled={isLoggingOut}>
+            {isLoggingOut ? (
+              <Loader2 className="mr-3 h-4 w-4 animate-spin" />
+            ) : (
+              <LogOut className="mr-3 h-4 w-4" />
+            )}
+            <span>{isLoggingOut ? 'Logging out...' : 'Log out'}</span>
           </DropdownMenuItem>
         </div>
       </DropdownMenuContent>

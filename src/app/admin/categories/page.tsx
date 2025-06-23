@@ -239,12 +239,11 @@ export default function AdminCategories() {
                   >
                     <Edit className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-0 lg:mr-1" />
                     <span className="sm:hidden lg:inline">Edit</span>
-                  </Button>
-                  <Button
+                  </Button>                  <Button
                     variant="destructive"
                     size="sm"
                     onClick={() => deleteCategory(category.category_id)}
-                    className="flex-1 sm:flex-initial text-xs"
+                    className="flex-1 sm:flex-initial text-xs admin-delete-button"
                   >
                     <Trash2 className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-0 lg:mr-1" />
                     <span className="sm:hidden lg:inline">Delete</span>

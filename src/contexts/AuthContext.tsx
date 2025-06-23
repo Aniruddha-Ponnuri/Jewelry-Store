@@ -18,6 +18,7 @@ interface AuthContextType {
   adminPermissions: AdminPermissions | null
   loading: boolean
   signOut: () => Promise<void>
+  forceSignOut: () => Promise<void>
   refreshAdminStatus: () => Promise<void>
 }
 
@@ -63,7 +64,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setAdminPermissions(null)
     }
   }, [supabase])
-
   const refreshAdminStatus = async () => {
     await checkAdminStatus(user)
   }
@@ -72,80 +72,143 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setMounted(true)
     
     const getUser = async () => {
-      const { data: { user } } = await supabase.auth.getUser()
-      setUser(user)
-      
-      if (user) {
-        // Get user profile
-        const { data: profile } = await supabase
-          .from('users')
-          .select('*')
-          .eq('user_id', user.id)
-          .single()
-        setUserProfile(profile)
+      try {
+        const { data: { user } } = await supabase.auth.getUser()
+        setUser(user)
         
-        // Check admin status
-        await checkAdminStatus(user)
+        if (user) {
+          // Get user profile and admin status in parallel
+          const [profileResult, adminResult] = await Promise.allSettled([
+            supabase.from('users').select('*').eq('user_id', user.id).single(),
+            supabase.rpc('is_admin')
+          ])
+          
+          if (profileResult.status === 'fulfilled') {
+            setUserProfile(profileResult.value.data)
+          }
+          
+          if (adminResult.status === 'fulfilled') {
+            const isAdminUser = Boolean(adminResult.value.data)
+            setIsAdmin(isAdminUser)
+            setAdminPermissions(isAdminUser ? {
+              products: true,
+              categories: true,
+              users: true
+            } : null)
+          }
+        }
+      } catch (error) {
+        console.error('Error getting user:', error)
+      } finally {
+        setLoading(false)
       }
-      
-      setLoading(false)
     }
 
     getUser()
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
-        setUser(session?.user || null)
-        
-        if (session?.user) {
-          const { data: profile } = await supabase
-            .from('users')
-            .select('*')
-            .eq('user_id', session.user.id)
-            .single()
-          setUserProfile(profile)
+        try {
+          setUser(session?.user || null)
           
-          await checkAdminStatus(session.user)
-        } else {
-          setUserProfile(null)
-          setIsAdmin(false)
-          setAdminPermissions(null)
+          if (session?.user) {
+            const { data: profile } = await supabase
+              .from('users')
+              .select('*')
+              .eq('user_id', session.user.id)
+              .single()
+            setUserProfile(profile)
+            
+            await checkAdminStatus(session.user)
+          } else {
+            setUserProfile(null)
+            setIsAdmin(false)
+            setAdminPermissions(null)
+          }
+        } catch (error) {
+          console.error('Error in auth state change:', error)
+        } finally {
+          setLoading(false)
         }
-        
-        setLoading(false)
-      }    )
-
-    return () => subscription.unsubscribe()
-  }, [supabase, checkAdminStatus])
-
-  // Prevent hydration mismatch
-  if (!mounted) {
-    return (
-      <AuthContext.Provider value={{ 
-        user: null, 
-        userProfile: null, 
-        isAdmin: false, 
-        adminPermissions: null, 
-        loading: true, 
-        signOut: async () => {},
-        refreshAdminStatus: async () => {}
-      }}>
-        {children}
-      </AuthContext.Provider>
+      }
     )
-  }
+
+    return () => subscription.unsubscribe()  }, [supabase, checkAdminStatus])
+
   const signOut = async () => {
     try {
-      await supabase.auth.signOut()
+      console.log('Starting logout process...')
+      
+      // Clear client-side auth state first
+      console.log('Clearing client-side state...')
       setUser(null)
       setUserProfile(null)
       setIsAdmin(false)
       setAdminPermissions(null)
-      // Use router instead of window.location for better UX
+      
+      // Create promises for both logout operations
+      console.log('Initiating Supabase and API logout...')
+      const supabaseSignOut = supabase.auth.signOut()
+      const apiLogout = fetch('/api/auth/logout', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      })
+      
+      // Execute both operations in parallel
+      const [supabaseResult, apiResult] = await Promise.allSettled([
+        supabaseSignOut,
+        apiLogout
+      ])
+      
+      // Log results
+      if (supabaseResult.status === 'fulfilled') {
+        console.log('Supabase signOut successful')
+      } else {
+        console.error('Supabase signOut error:', supabaseResult.reason)
+      }
+      
+      if (apiResult.status === 'fulfilled') {
+        console.log('API logout successful')
+      } else {
+        console.error('API logout error:', apiResult.reason)
+      }
+      
+      console.log('Forcing page reload...')
+      // Force a full page reload to ensure all state is cleared
       window.location.href = '/'
     } catch (error) {
       console.error('Logout error:', error)
       // Force reload anyway to clear state
+      window.location.href = '/'
+    }
+  }
+
+  const forceSignOut = async () => {
+    try {
+      console.log('Starting force logout...')
+      
+      // Clear client-side auth state immediately
+      setUser(null)
+      setUserProfile(null)
+      setIsAdmin(false)
+      setAdminPermissions(null)
+      
+      // Only try Supabase client logout
+      await supabase.auth.signOut()
+      
+      // Clear localStorage/sessionStorage
+      if (typeof window !== 'undefined') {
+        localStorage.clear()
+        sessionStorage.clear()
+      }
+      
+      // Force reload
+      window.location.href = '/'
+    } catch (error) {
+      console.error('Force logout error:', error)
+      // Force reload anyway
       window.location.href = '/'
     }
   }
@@ -156,8 +219,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       userProfile, 
       isAdmin, 
       adminPermissions, 
-      loading, 
+      loading: !mounted || loading, 
       signOut, 
+      forceSignOut,
       refreshAdminStatus 
     }}>
       {children}

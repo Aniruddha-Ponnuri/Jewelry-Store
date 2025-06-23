@@ -7,13 +7,26 @@ import { useAdmin } from '@/hooks/useAdmin'
 import { Button } from '@/components/ui/button'
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet'
 import { Badge } from '@/components/ui/badge'
-import { Menu, Heart, LogOut, Shield, Package, FolderOpen } from 'lucide-react'
+import { Menu, Heart, LogOut, Shield, Package, FolderOpen, Loader2 } from 'lucide-react'
 import ClientNavigation from './ClientNavigation'
 
 export default function Navigation() {
   const { user, signOut } = useAuth()
   const { isAdmin } = useAdmin()
   const [isOpen, setIsOpen] = useState(false)
+  const [isMobileLoggingOut, setIsMobileLoggingOut] = useState(false)
+  const handleMobileSignOut = async () => {
+    setIsMobileLoggingOut(true)
+    try {
+      console.log('Starting mobile logout process...')
+      await signOut()
+      setIsOpen(false)
+      console.log('Mobile logout completed successfully')
+    } catch (error) {
+      console.error('Mobile logout error:', error)
+      window.location.href = '/'
+    }
+  }
 
   const NavItems = () => (
     <>
@@ -27,13 +40,11 @@ export default function Navigation() {
         <Link href="/bookmarks" className="text-sm font-medium hover:text-amber-600 transition-colors">
           Bookmarks
         </Link>
-      )}
-      {isAdmin && (
+      )}      {isAdmin && (
         <Link 
-          href="/admin/users" 
+          href="/admin" 
           className="admin-desktop-button flex items-center gap-2"
         >
-          <Shield className="h-4 w-4" />
           🛡️ Admin Dashboard
         </Link>
       )}
@@ -111,23 +122,28 @@ export default function Navigation() {
                       {/* Admin Header */}
                       <div className="bg-gradient-to-r from-amber-50 to-amber-100 p-4 rounded-xl border border-amber-200 shadow-sm">
                         <h3 className="text-lg font-bold text-amber-700 uppercase tracking-wide flex items-center gap-2">
-                          <Shield className="h-6 w-6" />
                           🛡️ Admin Panel
                         </h3>
                         <p className="text-sm text-amber-600 mt-1">Administrative Controls</p>
-                      </div>                        {/* Primary Admin Dashboard Button */}
+                      </div>                      {/* Primary Admin Dashboard Button */}
                       <Link 
-                        href="/admin/users" 
+                        href="/admin" 
                         className="admin-mobile-primary"
                         onClick={() => setIsOpen(false)}
                       >
                         <div className="flex items-center gap-3">
-                          <Shield className="h-6 w-6" />
                           <span>🛡️ Admin Dashboard</span>
                         </div>
-                      </Link>
-                        {/* Admin Management Options */}
+                      </Link>                        {/* Admin Management Options */}
                       <div className="space-y-3">
+                        <Link 
+                          href="/admin/users" 
+                          className="admin-mobile-secondary flex items-center gap-3"
+                          onClick={() => setIsOpen(false)}
+                        >
+                          <Shield className="h-5 w-5 text-amber-600" />
+                          <span>👥 Manage Admins</span>
+                        </Link>
                         <Link 
                           href="/admin/products" 
                           className="admin-mobile-secondary flex items-center gap-3"
@@ -168,16 +184,24 @@ export default function Navigation() {
                         <div className="space-y-3 pt-4 border-t">
                           <h3 className="text-sm font-medium text-gray-500 uppercase tracking-wide">Account</h3>
                           <div className="text-sm text-gray-600 break-words px-2 py-1 bg-gray-50 rounded">{user.email}</div>
-                          <Button 
+                          
+                          {/* Debug link for testing */}
+                          <Link href="/debug-logout" onClick={() => setIsOpen(false)}>
+                            <Button variant="ghost" className="w-full justify-start text-xs text-gray-500 hover:text-amber-600">
+                              Logout
+                            </Button>
+                          </Link>                          <Button 
                             variant="outline" 
                             className="w-full justify-start text-red-600 hover:text-red-700"
-                            onClick={() => {
-                              signOut()
-                              setIsOpen(false)
-                            }}
+                            onClick={handleMobileSignOut}
+                            disabled={isMobileLoggingOut}
                           >
-                            <LogOut className="mr-2 h-4 w-4" />
-                            Sign Out
+                            {isMobileLoggingOut ? (
+                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            ) : (
+                              <LogOut className="mr-2 h-4 w-4" />
+                            )}
+                            {isMobileLoggingOut ? 'Logging out...' : 'Sign Out'}
                           </Button>
                         </div>                      )}
                     </div>

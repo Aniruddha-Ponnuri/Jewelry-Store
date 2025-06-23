@@ -55,13 +55,19 @@ export async function middleware(request: NextRequest) {
       return NextResponse.redirect(new URL('/login', request.url))
     }
   }
-
   // Redirect authenticated users away from auth pages
   if (user && (
     request.nextUrl.pathname.startsWith('/login') ||
-    request.nextUrl.pathname.startsWith('/register')
+    request.nextUrl.pathname.startsWith('/register') ||
+    request.nextUrl.pathname.startsWith('/forgot-password')
   )) {
     return NextResponse.redirect(new URL('/', request.url))
+  }
+
+  // Allow access to reset-password page regardless of auth status
+  // (users need this to reset their password via email link)
+  if (request.nextUrl.pathname.startsWith('/reset-password')) {
+    return supabaseResponse
   }
 
   return supabaseResponse

@@ -87,8 +87,18 @@ export default function Login() {
                   required
                   autoComplete="current-password"
                 />
-              </div>
+              </div>            </div>
+            
+            <div className="flex items-center justify-between">
+              <div></div>
+              <Link 
+                href="/forgot-password" 
+                className="text-sm text-amber-600 hover:text-amber-700 font-medium transition-colors duration-200"
+              >
+                Forgot password?
+              </Link>
             </div>
+            
             {state.error && (
               <Alert variant="destructive" className="border-red-200 bg-red-50">
                 <AlertDescription className="text-sm text-red-800">{state.error}</AlertDescription>

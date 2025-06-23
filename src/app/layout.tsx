@@ -13,6 +13,7 @@ const inter = Inter({
 })
 
 export const metadata: Metadata = {
+  metadataBase: new URL('https://jewelry-store-swart.vercel.app'),
   title: 'SilverPalace - Premium Silver Jewelry Collection',
   description: 'Discover our exquisite collection of fine silver jewelry, rings, necklaces, and precious gems crafted by Indian artisans.',
   keywords: 'silver jewelry, indian jewelry, rings, necklaces, earrings, bracelets, handcrafted',
@@ -34,10 +35,11 @@ export const metadata: Metadata = {
       'max-image-preview': 'large',
       'max-snippet': -1,
     },
-  },  openGraph: {
+  },
+  openGraph: {
     type: 'website',
     locale: 'en_IN',
-    url: 'https://silverpalace.com',
+    url: 'https://jewelry-store-swart.vercel.app',
     title: 'SilverPalace - Premium Silver Jewelry Collection',
     description: 'Discover our exquisite collection of fine silver jewelry, rings, necklaces, and precious gems crafted by Indian artisans.',
     siteName: 'SilverPalace',
@@ -46,6 +48,9 @@ export const metadata: Metadata = {
     card: 'summary_large_image',
     title: 'SilverPalace - Premium Silver Jewelry Collection',
     description: 'Discover our exquisite collection of fine silver jewelry, rings, necklaces, and precious gems crafted by Indian artisans.',
+  },
+  alternates: {
+    canonical: 'https://jewelry-store-swart.vercel.app',
   },
 }
 
@@ -67,7 +72,7 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="en" className="scroll-smooth">
+    <html lang="en" className="scroll-smooth" suppressHydrationWarning>
       <head>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />

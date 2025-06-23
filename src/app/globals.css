@@ -916,6 +916,17 @@ body {
       padding: 0.375rem 0.75rem !important;
       font-size: 0.75rem !important;
       font-weight: 600 !important;
-    }
+    }  }
+  
+  /* Admin delete button - ensure proper styling */
+  .admin-delete-button {
+    background-color: #dc2626 !important;
+    color: white !important;
+    border-color: #dc2626 !important;
+  }
+  
+  .admin-delete-button:hover {
+    background-color: #b91c1c !important;
+    border-color: #b91c1c !important;
   }
 }

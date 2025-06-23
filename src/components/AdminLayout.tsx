@@ -4,7 +4,7 @@ import { useAdmin } from '@/hooks/useAdmin'
 import { useRouter } from 'next/navigation'
 import { useEffect } from 'react'
 import { Badge } from '@/components/ui/badge'
-import { Shield, Package, FolderOpen } from 'lucide-react'
+import { Shield, Package, FolderOpen, Users } from 'lucide-react'
 import Link from 'next/link'
 
 interface AdminLayoutProps {
@@ -59,11 +59,17 @@ export default function AdminLayout({ children, title, description }: AdminLayou
         <div className="container mx-auto px-3 sm:px-4 py-3 sm:py-4">
           <div className="flex flex-wrap gap-3 sm:gap-4">
             <Link 
-              href="/admin/users" 
+              href="/admin" 
               className="flex items-center gap-2 px-4 py-2 sm:px-6 sm:py-3 text-sm sm:text-base font-medium text-amber-600 hover:text-amber-700 bg-amber-50 hover:bg-amber-100 rounded-lg border border-amber-200 hover:border-amber-300 transition-all duration-200 hover:scale-105 active:scale-95 shadow-sm hover:shadow-md"
             >
               <Shield className="w-4 h-4 sm:w-5 sm:h-5" />
-              <span>Admin Management</span>
+              <span>Dashboard</span>
+            </Link>            <Link 
+              href="/admin/users" 
+              className="flex items-center gap-2 px-4 py-2 sm:px-6 sm:py-3 text-sm sm:text-base font-medium text-amber-600 hover:text-amber-700 bg-amber-50 hover:bg-amber-100 rounded-lg border border-amber-200 hover:border-amber-300 transition-all duration-200 hover:scale-105 active:scale-95 shadow-sm hover:shadow-md"
+            >
+              <Users className="w-4 h-4 sm:w-5 sm:h-5" />
+              <span>Users</span>
             </Link>
             <Link 
               href="/admin/products" 
