@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { useAdmin } from '@/hooks/useAdmin'
+import { useAuth } from '@/contexts/AuthContext'
 import { createClient } from '@/lib/supabase/client'
 import { Product } from '@/types/database'
 import { Button } from '@/components/ui/button'
@@ -22,6 +23,7 @@ import Image from 'next/image'
 
 export default function AdminProducts() {
   const { isAdmin, loading: authLoading } = useAdmin()
+  const { refreshAdminStatus } = useAuth()
   const [products, setProducts] = useState<Product[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -138,6 +140,10 @@ export default function AdminProducts() {
         setIsDialogOpen(false)
         resetForm()
         fetchProducts()
+        // Refresh admin status to prevent losing privileges
+        setTimeout(() => {
+          refreshAdminStatus()
+        }, 500)
       }
     } catch (error) {
       setError(error instanceof Error ? error.message : 'An error occurred')
@@ -336,29 +342,29 @@ export default function AdminProducts() {
                 <div className="space-y-2">
                   <Label htmlFor="category" className="text-sm">Category</Label>
                   <Select value={formData.category} onValueChange={(value) => setFormData({ ...formData, category: value })}>
-                    <SelectTrigger className="text-sm">
+                    <SelectTrigger className="admin-select-trigger">
                       <SelectValue />
                     </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="rings">Rings</SelectItem>
-                      <SelectItem value="necklaces">Necklaces</SelectItem>
-                      <SelectItem value="earrings">Earrings</SelectItem>
-                      <SelectItem value="bracelets">Bracelets</SelectItem>
-                      <SelectItem value="watches">Watches</SelectItem>
+                    <SelectContent className="admin-select-content">
+                      <SelectItem value="rings" className="admin-select-item">Rings</SelectItem>
+                      <SelectItem value="necklaces" className="admin-select-item">Necklaces</SelectItem>
+                      <SelectItem value="earrings" className="admin-select-item">Earrings</SelectItem>
+                      <SelectItem value="bracelets" className="admin-select-item">Bracelets</SelectItem>
+                      <SelectItem value="watches" className="admin-select-item">Watches</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="material" className="text-sm">Material</Label>
                   <Select value={formData.material} onValueChange={(value) => setFormData({ ...formData, material: value })}>
-                    <SelectTrigger className="text-sm">
+                    <SelectTrigger className="admin-select-trigger">
                       <SelectValue />
                     </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="gold">Gold</SelectItem>
-                      <SelectItem value="silver">Silver</SelectItem>
-                      <SelectItem value="platinum">Platinum</SelectItem>
-                      <SelectItem value="titanium">Titanium</SelectItem>
+                    <SelectContent className="admin-select-content">
+                      <SelectItem value="gold" className="admin-select-item">Gold</SelectItem>
+                      <SelectItem value="silver" className="admin-select-item">Silver</SelectItem>
+                      <SelectItem value="platinum" className="admin-select-item">Platinum</SelectItem>
+                      <SelectItem value="titanium" className="admin-select-item">Titanium</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>

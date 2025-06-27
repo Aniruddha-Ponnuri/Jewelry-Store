@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { useAdmin } from '@/hooks/useAdmin'
+import { useAuth } from '@/contexts/AuthContext'
 import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -23,6 +24,7 @@ interface Category {
 
 export default function AdminCategories() {
   const { isAdmin, loading: authLoading } = useAdmin()
+  const { refreshAdminStatus } = useAuth()
   const [categories, setCategories] = useState<Category[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -93,6 +95,10 @@ export default function AdminCategories() {
         setIsDialogOpen(false)
         resetForm()
         fetchCategories()
+        // Refresh admin status to prevent losing privileges
+        setTimeout(() => {
+          refreshAdminStatus()
+        }, 500)
       }
     } catch (error) {
       setError(error instanceof Error ? error.message : 'An error occurred')
@@ -112,6 +118,10 @@ export default function AdminCategories() {
         if (error) throw error
         
         fetchCategories()
+        // Refresh admin status to prevent losing privileges
+        setTimeout(() => {
+          refreshAdminStatus()
+        }, 500)
       } catch (error) {
         setError(error instanceof Error ? error.message : 'Deletion failed')
       }

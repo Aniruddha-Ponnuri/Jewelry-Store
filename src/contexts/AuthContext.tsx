@@ -46,8 +46,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       if (error) {
         console.error('Error checking admin status:', error)
-        setIsAdmin(false)
-        setAdminPermissions(null)
+        // Don't immediately reset admin state on error to prevent loss during form submissions
+        if (error.message?.includes('JWT') || error.message?.includes('session') || 
+            error.message?.includes('fetch') || error.message?.includes('network')) {
+          console.log('Temporary error detected, maintaining admin state and retrying admin check')
+          // Retry after a delay without resetting admin state
+          setTimeout(() => checkAdminStatus(currentUser), 2000)
+          return // Don't reset admin state
+        } else {
+          // Only reset on non-temporary errors
+          console.log('Persistent error, resetting admin state')
+          setIsAdmin(false)
+          setAdminPermissions(null)
+        }
       } else {
         const isAdminUser = Boolean(adminCheck)
         setIsAdmin(isAdminUser)
@@ -60,8 +71,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
     } catch (error) {
       console.error('Error checking admin status:', error)
-      setIsAdmin(false)
-      setAdminPermissions(null)
+      // Don't immediately reset admin state on network errors to prevent loss during form submissions
+      if (error instanceof Error && (
+          error.message?.includes('fetch') || 
+          error.message?.includes('network') ||
+          error.message?.includes('Failed to fetch') ||
+          error.name === 'TypeError'
+        )) {
+        console.log('Network/fetch error detected, maintaining admin state and retrying admin check')
+        setTimeout(() => checkAdminStatus(currentUser), 3000)
+        return // Don't reset admin state
+      } else {
+        // Only reset on non-network errors
+        console.log('Non-network error, resetting admin state')
+        setIsAdmin(false)
+        setAdminPermissions(null)
+      }
     }
   }, [supabase])
   const refreshAdminStatus = async () => {
