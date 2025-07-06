@@ -7,12 +7,10 @@ export interface Product {
   material: string;
   weight: number | null;
   gemstone: string | null;
-  dimensions: string | null;
   image_path: string | null;
   is_in_stock: boolean;
   is_featured: boolean;
   stock_quantity: number;
-  sku: string | null;
   tags: string[] | null;
   created_at: string;
   updated_at: string;
@@ -100,15 +98,15 @@ export type Database = {
       };
     };    Functions: {
       is_admin: {
-        Args: { user_uuid?: string };
+        Args: Record<string, never>;
         Returns: boolean;
       };
       is_super_admin: {
-        Args: { user_uuid?: string };
+        Args: Record<string, never>;
         Returns: boolean;
       };
       get_admin_permissions: {
-        Args: { user_uuid?: string };
+        Args: Record<string, never>;
         Returns: {
           products: boolean;
           categories: boolean;
@@ -126,23 +124,19 @@ export type Database = {
         Args: { admin_email: string };
         Returns: string;
       };
-      update_admin: {
-        Args: { 
-          admin_email: string;
-          new_role?: 'super_admin' | 'admin';
-          new_permissions?: {
-            products: boolean;
-            categories: boolean;
-            users: boolean;
-            admins: boolean;
-          };
-          new_active_status?: boolean;
+      debug_admin_status: {
+        Args: Record<string, never>;
+        Returns: {
+          user_id: string | null;
+          is_admin_function_result: boolean | null;
+          total_active_admins: number;
+          user_admin_record_exists: boolean;
+          user_admin_is_active: boolean | null;
+          admin_email: string | null;
+          timestamp: string;
+          error?: boolean;
+          message?: string;
         };
-        Returns: string;
-      };
-      create_first_super_admin: {
-        Args: { super_admin_email: string };
-        Returns: string;
       };
     };
   };

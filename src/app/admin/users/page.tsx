@@ -41,10 +41,10 @@ export default function AdminUsersPage() {
     try {
       setLoading(true)
       
-      // Optimized query with only essential fields and limit initial load
+      // Query with only the fields that actually exist in the database
       const { data: admins, error } = await supabase
         .from('admin_users')
-        .select('admin_id, user_id, email, role, permissions, is_active, created_at, created_by, updated_at')
+        .select('admin_id, user_id, email, is_active, created_at, updated_at')
         .order('created_at', { ascending: false })
         .limit(50) // Limit to improve performance
 
@@ -54,22 +54,22 @@ export default function AdminUsersPage() {
         return
       }
 
-      // Optimized transformation with proper typing and memoized display names
-      const transformedAdmins = admins?.map(admin => ({
+      // Transform with proper defaults for missing fields
+      const transformedAdmins: (AdminUser & { full_name?: string })[] = admins?.map(admin => ({
         admin_id: admin.admin_id,
         user_id: admin.user_id,
         email: admin.email,
-        role: admin.role || 'admin', // Provide default role
-        permissions: admin.permissions || { // Provide default permissions object
+        role: 'admin', // Default role since all admins have the same permissions
+        permissions: { // Default permissions for all admins
           products: true,
           categories: true,
-          users: false,
-          admins: false
+          users: true,
+          admins: true
         }, 
         is_active: admin.is_active,
         created_at: admin.created_at,
-        created_by: admin.created_by,
-        updated_at: admin.updated_at || admin.created_at, // Provide updated_at fallback
+        created_by: null, // Not tracked in simplified table
+        updated_at: admin.updated_at || admin.created_at, // Fallback to created_at
         full_name: admin.email.split('@')[0].charAt(0).toUpperCase() + admin.email.split('@')[0].slice(1)
       })) || []
 
