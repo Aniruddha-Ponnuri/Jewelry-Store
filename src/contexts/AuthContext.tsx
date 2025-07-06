@@ -9,6 +9,7 @@ interface AdminPermissions {
   products: boolean
   categories: boolean
   users: boolean
+  admins: boolean
 }
 
 interface AuthContextType {
@@ -62,12 +63,29 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       } else {
         const isAdminUser = Boolean(adminCheck)
         setIsAdmin(isAdminUser)
-        // In the new system, all admins have all permissions
-        setAdminPermissions(isAdminUser ? {
-          products: true,
-          categories: true,
-          users: true
-        } : null)
+        // Get actual permissions from the new admin system
+        if (isAdminUser) {
+          try {
+            const { data: permissions } = await supabase.rpc('get_admin_permissions')
+            setAdminPermissions(permissions || {
+              products: true,
+              categories: true,
+              users: false,
+              admins: false
+            })
+          } catch (error) {
+            console.error('Error getting admin permissions:', error)
+            // Fallback permissions for regular admin
+            setAdminPermissions({
+              products: true,
+              categories: true,
+              users: false,
+              admins: false
+            })
+          }
+        } else {
+          setAdminPermissions(null)
+        }
       }
     } catch (error) {
       console.error('Error checking admin status:', error)
@@ -115,11 +133,30 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           if (adminResult.status === 'fulfilled') {
             const isAdminUser = Boolean(adminResult.value.data)
             setIsAdmin(isAdminUser)
-            setAdminPermissions(isAdminUser ? {
-              products: true,
-              categories: true,
-              users: true
-            } : null)
+            if (isAdminUser) {
+              // Try to get actual permissions
+              supabase.rpc('get_admin_permissions').then(({ data: permissions, error }) => {
+                if (error) {
+                  console.error('Error getting admin permissions:', error)
+                  // Fallback permissions
+                  setAdminPermissions({
+                    products: true,
+                    categories: true,
+                    users: false,
+                    admins: false
+                  })
+                } else {
+                  setAdminPermissions(permissions || {
+                    products: true,
+                    categories: true,
+                    users: false,
+                    admins: false
+                  })
+                }
+              })
+            } else {
+              setAdminPermissions(null)
+            }
           }
         }
       } catch (error) {

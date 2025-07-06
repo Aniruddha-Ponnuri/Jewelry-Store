@@ -71,11 +71,12 @@ async function FeaturedProducts() {
 export default async function HomePage() {
   const supabase = await createClient()
   
-  // Fetch categories from Supabase
+  // Fetch categories from Supabase with cache revalidation
   const { data: categoriesFromDB } = await supabase
     .from('categories')
-    .select('name')
-    .order('name')
+    .select('name, description, emoji, is_active')
+    .eq('is_active', true)
+    .order('sort_order', { ascending: true })
 
   // Fallback categories if none exist in database
   const fallbackCategories = [
@@ -88,8 +89,8 @@ export default async function HomePage() {
   // Use categories from DB if available, otherwise use fallback
   const categories = categoriesFromDB && categoriesFromDB.length > 0 
     ? categoriesFromDB.map(cat => ({
-        name: cat.name,
-        emoji: getEmojiForCategory(cat.name),
+        name: cat.description || cat.name,
+        emoji: cat.emoji || getEmojiForCategory(cat.name),
         href: `/products?category=${cat.name.toLowerCase()}`
       }))
     : fallbackCategories

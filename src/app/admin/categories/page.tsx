@@ -74,7 +74,9 @@ export default function AdminCategories() {
       const categoryData = {
         name: formData.name.toLowerCase(),
         description: formData.description || null,
-        emoji: formData.emoji || null
+        emoji: formData.emoji || null,
+        is_active: true,
+        sort_order: categories.length + 1
       }
 
       let result
@@ -95,6 +97,18 @@ export default function AdminCategories() {
         setIsDialogOpen(false)
         resetForm()
         fetchCategories()
+        
+        // Force cache revalidation for the home page
+        try {
+          await fetch('/api/revalidate', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ path: '/' })
+          })
+        } catch (revalidateError) {
+          console.warn('Cache revalidation failed:', revalidateError)
+        }
+        
         // Refresh admin status to prevent losing privileges
         setTimeout(() => {
           refreshAdminStatus()
@@ -118,6 +132,18 @@ export default function AdminCategories() {
         if (error) throw error
         
         fetchCategories()
+        
+        // Force cache revalidation for the home page
+        try {
+          await fetch('/api/revalidate', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ path: '/' })
+          })
+        } catch (revalidateError) {
+          console.warn('Cache revalidation failed:', revalidateError)
+        }
+        
         // Refresh admin status to prevent losing privileges
         setTimeout(() => {
           refreshAdminStatus()

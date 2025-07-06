@@ -189,16 +189,29 @@ function ProductCard({ product, isBookmarked = false, onBookmarkChange, priority
           className="w-full touch-target transition-all duration-200 hover:scale-105" 
           disabled={!product.is_in_stock}
           variant={product.is_in_stock ? "default" : "secondary"}
+          style={!product.is_in_stock ? { 
+            backgroundColor: '#f1f5f9', 
+            color: '#64748b', 
+            cursor: 'not-allowed',
+            pointerEvents: 'auto'
+          } : {}}
         >
-          <Link 
-            href={`/products/${product.product_id}`}
-            className="flex items-center justify-center gap-2"
-            aria-label={`View details for ${product.name}`}
-          >
-            <span className="text-sm sm:text-base">
-              {product.is_in_stock ? 'View Details' : 'Out of Stock'}
+          {product.is_in_stock ? (
+            <Link 
+              href={`/products/${product.product_id}`}
+              className="flex items-center justify-center gap-2"
+              aria-label={`View details for ${product.name}`}
+            >
+              <span className="text-sm sm:text-base">View Details</span>
+            </Link>
+          ) : (
+            <span 
+              className="flex items-center justify-center gap-2 cursor-not-allowed"
+              aria-label={`${product.name} is out of stock`}
+            >
+              <span className="text-sm sm:text-base">Out of Stock</span>
             </span>
-          </Link>
+          )}
         </Button>
       </CardFooter>
     </Card>

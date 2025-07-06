@@ -44,7 +44,7 @@ export default function AdminUsersPage() {
       // Optimized query with only essential fields and limit initial load
       const { data: admins, error } = await supabase
         .from('admin_users')
-        .select('admin_id, email, is_active, created_at')
+        .select('admin_id, user_id, email, role, permissions, is_active, created_at, created_by, updated_at')
         .order('created_at', { ascending: false })
         .limit(50) // Limit to improve performance
 
@@ -54,16 +54,24 @@ export default function AdminUsersPage() {
         return
       }
 
-      // Optimized transformation with memoized display names
-      const transformedAdmins = admins?.map(admin => {
-        const emailName = admin.email.split('@')[0]
-        return {
-          ...admin,
-          user_id: '', // Not needed for display
-          created_by: null, // Not needed for display
-          full_name: emailName.charAt(0).toUpperCase() + emailName.slice(1)
-        }
-      }) || []
+      // Optimized transformation with proper typing and memoized display names
+      const transformedAdmins = admins?.map(admin => ({
+        admin_id: admin.admin_id,
+        user_id: admin.user_id,
+        email: admin.email,
+        role: admin.role || 'admin', // Provide default role
+        permissions: admin.permissions || { // Provide default permissions object
+          products: true,
+          categories: true,
+          users: false,
+          admins: false
+        }, 
+        is_active: admin.is_active,
+        created_at: admin.created_at,
+        created_by: admin.created_by,
+        updated_at: admin.updated_at || admin.created_at, // Provide updated_at fallback
+        full_name: admin.email.split('@')[0].charAt(0).toUpperCase() + admin.email.split('@')[0].slice(1)
+      })) || []
 
       setAdminUsers(transformedAdmins)
     } catch (error) {

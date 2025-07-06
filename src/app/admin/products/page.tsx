@@ -4,7 +4,7 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import { useAdmin } from '@/hooks/useAdmin'
 import { useAuth } from '@/contexts/AuthContext'
 import { createClient } from '@/lib/supabase/client'
-import { Product } from '@/types/database'
+import { Product, Category } from '@/types/database'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -25,6 +25,7 @@ export default function AdminProducts() {
   const { isAdmin, loading: authLoading } = useAdmin()
   const { refreshAdminStatus } = useAuth()
   const [products, setProducts] = useState<Product[]>([])
+  const [categories, setCategories] = useState<Category[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [editingProduct, setEditingProduct] = useState<Product | null>(null)
@@ -40,11 +41,13 @@ export default function AdminProducts() {
     name: '',
     description: '',
     price: '',
-    category: 'rings',
-    material: 'gold',
+    category: 'rings', // This will be updated when categories are loaded
+    material: 'silver',
     weight: '',
     gemstone: '',
-    is_in_stock: true
+    is_in_stock: true,
+    is_featured: false,
+    stock_quantity: '0'
   })
 
   // Redirect if not admin
@@ -68,11 +71,34 @@ export default function AdminProducts() {
     setLoading(false)
   }, [supabase])
 
+  const fetchCategories = useCallback(async () => {
+    const { data, error } = await supabase
+      .from('categories')
+      .select('*')
+      .eq('is_active', true)
+      .order('sort_order', { ascending: true })
+
+    if (error) {
+      console.error('Error fetching categories:', error.message)
+      // Use fallback categories if fetch fails
+      setCategories([
+        { category_id: '1', name: 'rings', description: 'Rings', emoji: '💍', is_active: true, sort_order: 1, created_at: '', updated_at: '' },
+        { category_id: '2', name: 'necklaces', description: 'Necklaces', emoji: '📿', is_active: true, sort_order: 2, created_at: '', updated_at: '' },
+        { category_id: '3', name: 'earrings', description: 'Earrings', emoji: '👂', is_active: true, sort_order: 3, created_at: '', updated_at: '' },
+        { category_id: '4', name: 'bracelets', description: 'Bracelets', emoji: '📿', is_active: true, sort_order: 4, created_at: '', updated_at: '' },
+        { category_id: '5', name: 'watches', description: 'Watches', emoji: '⌚', is_active: true, sort_order: 5, created_at: '', updated_at: '' }
+      ])
+    } else {
+      setCategories(data || [])
+    }
+  }, [supabase])
+
   useEffect(() => {
     if (isAdmin) {
       fetchProducts()
+      fetchCategories()
     }
-  }, [isAdmin, fetchProducts])
+  }, [isAdmin, fetchProducts, fetchCategories])
 
   const handleImageUpload = async (file: File) => {
     setUploading(true)
@@ -119,6 +145,8 @@ export default function AdminProducts() {
         weight: formData.weight ? parseFloat(formData.weight) : null,
         gemstone: formData.gemstone || null,
         is_in_stock: formData.is_in_stock,
+        is_featured: formData.is_featured || false,
+        stock_quantity: parseInt(formData.stock_quantity) || 0,
         image_path: imagePath
       }
 
@@ -140,6 +168,21 @@ export default function AdminProducts() {
         setIsDialogOpen(false)
         resetForm()
         fetchProducts()
+        
+        // Refresh categories to get latest data
+        fetchCategories()
+        
+        // Force cache revalidation for pages that use categories
+        try {
+          await fetch('/api/revalidate', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ path: '/' })
+          })
+        } catch (revalidateError) {
+          console.warn('Cache revalidation failed:', revalidateError)
+        }
+        
         // Refresh admin status to prevent losing privileges
         setTimeout(() => {
           refreshAdminStatus()
@@ -185,21 +228,27 @@ export default function AdminProducts() {
   }
 
   const resetForm = () => {
+    const defaultCategory = categories.length > 0 ? categories[0].name : 'rings'
     setFormData({
       name: '',
       description: '',
       price: '',
-      category: 'rings',
+      category: defaultCategory,
       material: 'gold',
       weight: '',
       gemstone: '',
-      is_in_stock: true
+      is_in_stock: true,
+      is_featured: false,
+      stock_quantity: '0'
     })
     setEditingProduct(null)
     setImageFile(null)
     if (fileInputRef.current) {
       fileInputRef.current.value = ''
     }
+    
+    // Refresh categories when resetting form for new products
+    fetchCategories()
   }
 
   const openEditDialog = (product: Product) => {
@@ -212,12 +261,18 @@ export default function AdminProducts() {
       material: product.material,
       weight: product.weight?.toString() || '',
       gemstone: product.gemstone || '',
-      is_in_stock: product.is_in_stock
+      is_in_stock: product.is_in_stock,
+      is_featured: product.is_featured || false,
+      stock_quantity: (product.stock_quantity || 0).toString()
     })
     setImageFile(null)
     if (fileInputRef.current) {
       fileInputRef.current.value = ''
     }
+    
+    // Refresh categories when opening the dialog to ensure we have the latest
+    fetchCategories()
+    
     setIsDialogOpen(true)
   }
   if (authLoading || loading) {
@@ -241,8 +296,8 @@ export default function AdminProducts() {
               <Plus className="w-4 h-4 mr-2" />
               Add Product
             </Button>
-          </DialogTrigger>          <DialogContent className="w-[95vw] sm:max-w-[600px] max-h-[90vh] overflow-y-auto mx-auto bg-white border shadow-lg">
-            <DialogHeader>
+          </DialogTrigger>          <DialogContent className="w-[95vw] sm:max-w-[600px] max-h-[85vh] sm:max-h-[90vh] overflow-hidden mx-auto bg-white border shadow-lg flex flex-col">
+            <DialogHeader className="flex-shrink-0 pb-4">
               <DialogTitle className="text-base sm:text-lg">
                 {editingProduct ? 'Edit Product' : 'Add New Product'}
               </DialogTitle>
@@ -250,8 +305,9 @@ export default function AdminProducts() {
                 {editingProduct ? 'Update the product information below.' : 'Fill in the product details below.'}
               </DialogDescription>
             </DialogHeader>
-            <form onSubmit={handleSubmit} className="space-y-3 sm:space-y-4">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+            <div className="flex-1 overflow-y-auto px-1">
+              <form onSubmit={handleSubmit} className="space-y-3 sm:space-y-4 pb-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="name" className="text-sm">Product Name</Label>
                   <Input
@@ -346,11 +402,15 @@ export default function AdminProducts() {
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent className="admin-select-content">
-                      <SelectItem value="rings" className="admin-select-item">Rings</SelectItem>
-                      <SelectItem value="necklaces" className="admin-select-item">Necklaces</SelectItem>
-                      <SelectItem value="earrings" className="admin-select-item">Earrings</SelectItem>
-                      <SelectItem value="bracelets" className="admin-select-item">Bracelets</SelectItem>
-                      <SelectItem value="watches" className="admin-select-item">Watches</SelectItem>
+                      {categories.map((category) => (
+                        <SelectItem 
+                          key={category.category_id} 
+                          value={category.name} 
+                          className="admin-select-item"
+                        >
+                          {category.emoji && `${category.emoji} `}{category.description || category.name}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>
@@ -394,13 +454,51 @@ export default function AdminProducts() {
                 </div>
               </div>
 
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="stock_quantity" className="text-sm">Stock Quantity</Label>
+                  <Input
+                    id="stock_quantity"
+                    type="number"
+                    min="0"
+                    value={formData.stock_quantity}
+                    onChange={(e) => {
+                      const quantity = e.target.value
+                      setFormData({ 
+                        ...formData, 
+                        stock_quantity: quantity,
+                        is_in_stock: parseInt(quantity) > 0 
+                      })
+                    }}
+                    className="text-sm"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Stock status will automatically update based on quantity
+                  </p>
+                </div>
+                <div className="flex items-center space-x-2 pt-6">
+                  <Switch
+                    id="featured"
+                    checked={formData.is_featured}
+                    onCheckedChange={(checked) => setFormData({ ...formData, is_featured: checked })}
+                    className="featured-switch"
+                  />
+                  <Label htmlFor="featured" className={`text-sm featured-label ${formData.is_featured ? 'featured' : 'not-featured'}`}>
+                  {formData.is_featured ? "⭐ Featured Product" : "🔲 Regular Product"}
+                </Label>
+                </div>
+              </div>
+
               <div className="flex items-center space-x-2">
                 <Switch
                   id="in-stock"
                   checked={formData.is_in_stock}
                   onCheckedChange={(checked) => setFormData({ ...formData, is_in_stock: checked })}
+                  className="stock-switch"
                 />
-                <Label htmlFor="in-stock" className="text-sm">In Stock</Label>
+                <Label htmlFor="in-stock" className={`text-sm stock-label ${formData.is_in_stock ? 'in-stock' : 'out-of-stock'}`}>
+                  {formData.is_in_stock ? "✓ In Stock" : "✗ Out of Stock"}
+                </Label>
               </div>
 
               {error && (
@@ -415,7 +513,8 @@ export default function AdminProducts() {
                   {loading || uploading ? 'Saving...' : editingProduct ? 'Update' : 'Create'}
                 </Button>
               </div>
-            </form>
+              </form>
+            </div>
           </DialogContent>
         </Dialog>
       </div>      <div className="grid gap-3 sm:gap-4 lg:gap-6">
@@ -438,11 +537,23 @@ export default function AdminProducts() {
                   <div className="min-w-0 flex-1">
                     <CardTitle className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2 text-base sm:text-lg">
                       <span className="truncate">{product.name}</span>
-                      {!product.is_in_stock && (
-                        <Badge variant="destructive" className="text-xs w-fit">Out of Stock</Badge>
-                      )}
+                      <div className="flex gap-1">
+                        {!product.is_in_stock && (
+                          <Badge variant="destructive" className="text-xs w-fit">Out of Stock</Badge>
+                        )}
+                        {product.is_featured && (
+                          <Badge variant="default" className="text-xs w-fit">Featured</Badge>
+                        )}
+                      </div>
                     </CardTitle>
-                    <CardDescription className="text-sm sm:text-base font-medium">₹{product.price}</CardDescription>
+                    <CardDescription className="text-sm sm:text-base font-medium">
+                      ₹{product.price}
+                      {product.stock_quantity !== undefined && (
+                        <span className="ml-2 text-xs text-muted-foreground">
+                          Stock: {product.stock_quantity}
+                        </span>
+                      )}
+                    </CardDescription>
                   </div>
                 </div>
                 <div className="flex gap-2 sm:flex-col lg:flex-row">

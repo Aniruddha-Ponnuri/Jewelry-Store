@@ -141,22 +141,14 @@ export default function AdminDashboard() {
   }
 
   const formatCurrency = (amount: number) => {
-    // Only format on client-side to prevent hydration mismatches
-    if (!mounted) return `$${amount.toFixed(2)}`
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'INR'
-    }).format(amount)
+    // Simple formatting to avoid hydration issues
+    return `₹${amount.toLocaleString('en-IN')}`
   }
   
   const formatDate = (dateString: string) => {
-    // Only format on client-side to prevent hydration mismatches
-    if (!mounted) return new Date(dateString).toLocaleDateString()
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric'
-    })
+    // Simple date formatting to avoid hydration issues
+    const date = new Date(dateString)
+    return date.toLocaleDateString('en-IN')
   }
 
   return (
