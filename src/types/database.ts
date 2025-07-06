@@ -31,20 +31,22 @@ export interface User {
 }
 
 export interface AdminUser {
-  admin_id: string;
+  admin_id?: string; // May not exist depending on table setup
   user_id: string;
   email: string;
-  role: 'super_admin' | 'admin';
-  permissions: {
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+  // Computed/virtual fields for compatibility
+  role?: 'admin'; // All admins have the same role
+  permissions?: {
     products: boolean;
     categories: boolean;
     users: boolean;
     admins: boolean;
   };
-  is_active: boolean;
-  created_at: string;
-  created_by: string | null;
-  updated_at: string;
+  created_by?: string | null;
+  full_name?: string; // For UI display purposes
 }
 
 export interface Bookmark {
@@ -93,10 +95,11 @@ export type Database = {
       };
       admin_users: {
         Row: AdminUser;
-        Insert: Omit<AdminUser, 'admin_id' | 'created_at' | 'updated_at'>;
-        Update: Partial<Omit<AdminUser, 'admin_id' | 'created_at' | 'updated_at'>>;
+        Insert: Omit<AdminUser, 'admin_id' | 'created_at' | 'updated_at' | 'role' | 'permissions' | 'created_by' | 'full_name'>;
+        Update: Partial<Omit<AdminUser, 'admin_id' | 'created_at' | 'updated_at' | 'role' | 'permissions' | 'created_by' | 'full_name'>>;
       };
-    };    Functions: {
+    };
+    Functions: {
       is_admin: {
         Args: Record<string, never>;
         Returns: boolean;
@@ -138,6 +141,7 @@ export type Database = {
           message?: string;
         };
       };
+
     };
   };
 };

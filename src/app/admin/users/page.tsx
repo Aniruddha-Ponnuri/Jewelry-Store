@@ -41,7 +41,7 @@ export default function AdminUsersPage() {
     try {
       setLoading(true)
       
-      // Query with only the fields that actually exist in the database
+      // Query with fallback for admin_id in case it doesn't exist
       const { data: admins, error } = await supabase
         .from('admin_users')
         .select('admin_id, user_id, email, is_active, created_at, updated_at')
@@ -50,13 +50,52 @@ export default function AdminUsersPage() {
 
       if (error) {
         console.error('Error loading admin users:', error)
+        
+        // If admin_id column doesn't exist, try without it
+        if (error.message?.includes('admin_id') || error.code === '42703') {
+          console.log('admin_id column may not exist, trying without it...')
+          const { data: adminsWithoutId, error: retryError } = await supabase
+            .from('admin_users')
+            .select('user_id, email, is_active, created_at, updated_at')
+            .order('created_at', { ascending: false })
+            .limit(50)
+          
+          if (retryError) {
+            console.error('Retry error:', retryError)
+            setMessage({ type: 'error', text: 'Failed to load admin users' })
+            return
+          }
+          
+          // Use the data without admin_id
+          const transformedAdminsWithoutId: (AdminUser & { full_name?: string })[] = adminsWithoutId?.map((admin, index) => ({
+            admin_id: `admin_${index}`, // Generate a temporary ID for UI
+            user_id: admin.user_id,
+            email: admin.email,
+            role: 'admin', // Default role since all admins have the same permissions
+            permissions: { // Default permissions for all admins
+              products: true,
+              categories: true,
+              users: true,
+              admins: true
+            }, 
+            is_active: admin.is_active,
+            created_at: admin.created_at,
+            created_by: null, // Not tracked in simplified table
+            updated_at: admin.updated_at || admin.created_at, // Fallback to created_at
+            full_name: admin.email.split('@')[0].charAt(0).toUpperCase() + admin.email.split('@')[0].slice(1)
+          })) || []
+          
+          setAdminUsers(transformedAdminsWithoutId)
+          return
+        }
+        
         setMessage({ type: 'error', text: 'Failed to load admin users' })
         return
       }
 
       // Transform with proper defaults for missing fields
       const transformedAdmins: (AdminUser & { full_name?: string })[] = admins?.map(admin => ({
-        admin_id: admin.admin_id,
+        admin_id: admin.admin_id || admin.user_id, // Use user_id as fallback if admin_id doesn't exist
         user_id: admin.user_id,
         email: admin.email,
         role: 'admin', // Default role since all admins have the same permissions
@@ -155,10 +194,11 @@ export default function AdminUsersPage() {
     }
 
     try {
+      // Use user_id as the primary key since admin_id might not exist
       const { error } = await supabase
         .from('admin_users')
-        .update({ is_active: !adminUser.is_active })
-        .eq('admin_id', adminUser.admin_id)
+        .update({ is_active: !adminUser.is_active, updated_at: new Date().toISOString() })
+        .eq('user_id', adminUser.user_id)
 
       if (error) {
         console.error('Error updating admin status:', error)
