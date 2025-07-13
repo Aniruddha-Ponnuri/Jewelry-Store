@@ -7,6 +7,7 @@ import { useAuth } from '@/contexts/AuthContext'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Alert, AlertDescription } from '@/components/ui/alert'
@@ -24,82 +25,54 @@ export default function AdminUsersPage() {
   const [loading, setLoading] = useState(true)
   const [addingAdmin, setAddingAdmin] = useState(false)
   const [newAdminEmail, setNewAdminEmail] = useState('')
+  const [newAdminRole, setNewAdminRole] = useState<'admin' | 'master_admin'>('admin')
   const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null)
+  const [isMasterAdmin, setIsMasterAdmin] = useState(false)
 
   const supabase = createClient()
 
-  // Check if current user is the master admin (admin@silver.com)
-  const isMasterAdmin = user?.email === 'admin@silver.com'
+  // Load master admin emails and check if current user is master admin
+  const loadMasterAdminStatus = useCallback(async () => {
+    try {
+      const { data: isMaster, error: isMasterError } = await supabase.rpc('is_master_admin')
+      if (isMasterError) {
+        console.error('Error checking master admin status:', isMasterError)
+      } else {
+        setIsMasterAdmin(Boolean(isMaster))
+      }
+    } catch (error) {
+      console.error('Error loading master admin status:', error)
+    }
+  }, [supabase])
 
   // Redirect if not admin
   useEffect(() => {
     if (!adminLoading && !isAdmin) {
       router.push('/')
     }
-  }, [isAdmin, adminLoading, router])  // Load admin users - optimized with memoization and minimal data fetching
+  }, [isAdmin, adminLoading, router])  // Load admin users - simplified for robust admin system
   const loadAdminUsers = useCallback(async () => {
     try {
       setLoading(true)
       
-      // Query with fallback for admin_id in case it doesn't exist
       const { data: admins, error } = await supabase
         .from('admin_users')
-        .select('admin_id, user_id, email, is_active, created_at, updated_at')
+        .select('admin_id, user_id, email, role, is_active, created_at, updated_at')
         .order('created_at', { ascending: false })
-        .limit(50) // Limit to improve performance
 
       if (error) {
         console.error('Error loading admin users:', error)
-        
-        // If admin_id column doesn't exist, try without it
-        if (error.message?.includes('admin_id') || error.code === '42703') {
-          console.log('admin_id column may not exist, trying without it...')
-          const { data: adminsWithoutId, error: retryError } = await supabase
-            .from('admin_users')
-            .select('user_id, email, is_active, created_at, updated_at')
-            .order('created_at', { ascending: false })
-            .limit(50)
-          
-          if (retryError) {
-            console.error('Retry error:', retryError)
-            setMessage({ type: 'error', text: 'Failed to load admin users' })
-            return
-          }
-          
-          // Use the data without admin_id
-          const transformedAdminsWithoutId: (AdminUser & { full_name?: string })[] = adminsWithoutId?.map((admin, index) => ({
-            admin_id: `admin_${index}`, // Generate a temporary ID for UI
-            user_id: admin.user_id,
-            email: admin.email,
-            role: 'admin', // Default role since all admins have the same permissions
-            permissions: { // Default permissions for all admins
-              products: true,
-              categories: true,
-              users: true,
-              admins: true
-            }, 
-            is_active: admin.is_active,
-            created_at: admin.created_at,
-            created_by: null, // Not tracked in simplified table
-            updated_at: admin.updated_at || admin.created_at, // Fallback to created_at
-            full_name: admin.email.split('@')[0].charAt(0).toUpperCase() + admin.email.split('@')[0].slice(1)
-          })) || []
-          
-          setAdminUsers(transformedAdminsWithoutId)
-          return
-        }
-        
         setMessage({ type: 'error', text: 'Failed to load admin users' })
         return
       }
 
-      // Transform with proper defaults for missing fields
+      // Transform admin data
       const transformedAdmins: (AdminUser & { full_name?: string })[] = admins?.map(admin => ({
-        admin_id: admin.admin_id || admin.user_id, // Use user_id as fallback if admin_id doesn't exist
+        admin_id: admin.admin_id || admin.user_id,
         user_id: admin.user_id,
         email: admin.email,
-        role: 'admin', // Default role since all admins have the same permissions
-        permissions: { // Default permissions for all admins
+        role: admin.role || 'admin',
+        permissions: {
           products: true,
           categories: true,
           users: true,
@@ -107,8 +80,8 @@ export default function AdminUsersPage() {
         }, 
         is_active: admin.is_active,
         created_at: admin.created_at,
-        created_by: null, // Not tracked in simplified table
-        updated_at: admin.updated_at || admin.created_at, // Fallback to created_at
+        created_by: null,
+        updated_at: admin.updated_at || admin.created_at,
         full_name: admin.email.split('@')[0].charAt(0).toUpperCase() + admin.email.split('@')[0].slice(1)
       })) || []
 
@@ -124,8 +97,10 @@ export default function AdminUsersPage() {
   useEffect(() => {
     if (isAdmin) {
       loadAdminUsers()
+      loadMasterAdminStatus()
     }
-  }, [isAdmin, loadAdminUsers])
+  }, [isAdmin, loadAdminUsers, loadMasterAdminStatus])
+  
   const addAdmin = async () => {
     if (!newAdminEmail.trim()) {
       setMessage({ type: 'error', text: 'Please enter an email address' })
@@ -143,7 +118,8 @@ export default function AdminUsersPage() {
       setAddingAdmin(true)
       
       const { data, error } = await supabase.rpc('add_admin', { 
-        admin_email: newAdminEmail.trim() 
+        admin_email: newAdminEmail.trim(),
+        admin_role: newAdminRole
       })
 
       if (error) {
@@ -154,7 +130,9 @@ export default function AdminUsersPage() {
 
       setMessage({ type: 'success', text: data || 'Admin added successfully' })
       setNewAdminEmail('')
+      setNewAdminRole('admin')
       await loadAdminUsers()
+      await loadMasterAdminStatus()
     } catch (error) {
       console.error('Error adding admin:', error)
       setMessage({ type: 'error', text: 'Failed to add admin' })
@@ -187,10 +165,16 @@ export default function AdminUsersPage() {
     }
   }
   const toggleAdminStatus = async (adminUser: AdminUser) => {
-    // Prevent deactivating the master admin
-    if (adminUser.email === 'admin@silver.com' && adminUser.is_active) {
-      setMessage({ type: 'error', text: 'Cannot deactivate the master admin account' })
-      return
+    // Prevent deactivating master admins if they are the last one
+    if (adminUser.role === 'master_admin' && adminUser.is_active) {
+      const activeMasterAdmins = adminUsers.filter(admin => 
+        admin.role === 'master_admin' && admin.is_active
+      ).length;
+      
+      if (activeMasterAdmins <= 1) {
+        setMessage({ type: 'error', text: 'Cannot deactivate the last master admin account' })
+        return
+      }
     }
 
     try {
@@ -211,6 +195,7 @@ export default function AdminUsersPage() {
         text: `Admin ${adminUser.is_active ? 'deactivated' : 'activated'} successfully` 
       })
       await loadAdminUsers()
+      await loadMasterAdminStatus()
     } catch (error) {
       console.error('Error updating admin status:', error)
       setMessage({ type: 'error', text: 'Failed to update admin status' })
@@ -271,6 +256,22 @@ export default function AdminUsersPage() {
                 className="text-sm sm:text-base px-4 py-3 border-2 focus:border-amber-400 focus:ring-2 focus:ring-amber-200 transition-all duration-200"
                 autoComplete="email"
               />
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="role" className="text-sm font-medium">Admin Role</Label>
+              <Select value={newAdminRole} onValueChange={(value: 'admin' | 'master_admin') => setNewAdminRole(value)}>
+                <SelectTrigger className="text-sm sm:text-base px-4 py-3 border-2 focus:border-amber-400 focus:ring-2 focus:ring-amber-200 transition-all duration-200">
+                  <SelectValue placeholder="Select admin role" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="admin">Regular Admin</SelectItem>
+                  <SelectItem value="master_admin">Master Admin</SelectItem>
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-gray-500">
+                Master admins can add/remove other admins and create master admins. Regular admins can manage products and categories.
+              </p>
             </div>            <Button 
               onClick={addAdmin} 
               disabled={addingAdmin || !newAdminEmail.trim()}
@@ -332,9 +333,14 @@ export default function AdminUsersPage() {
                         <Badge variant={admin.is_active ? 'default' : 'secondary'} className="text-xs">
                           {admin.is_active ? 'Active' : 'Inactive'}
                         </Badge>
-                        {admin.email === 'admin@silver.com' && (
+                        {admin.role === 'master_admin' && (
                           <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200 text-xs">
                             Master Admin
+                          </Badge>
+                        )}
+                        {admin.role === 'admin' && (
+                          <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 text-xs">
+                            Admin
                           </Badge>
                         )}
                       </div>
@@ -356,7 +362,7 @@ export default function AdminUsersPage() {
                       variant="outline"
                       size="lg"
                       onClick={() => toggleAdminStatus(admin)}
-                      disabled={admin.email === 'admin@silver.com' && admin.is_active}
+                      disabled={admin.role === 'master_admin' && admin.is_active && adminUsers.filter(a => a.role === 'master_admin' && a.is_active).length <= 1}
                       className="flex-1 sm:flex-initial px-6 py-3 text-base font-medium hover:scale-105 active:scale-95 transition-all duration-200 shadow-sm hover:shadow-md border-2 hover:border-amber-300"
                     >
                       <span className="flex items-center gap-2">
@@ -374,8 +380,8 @@ export default function AdminUsersPage() {
                       </span>
                     </Button>
                     
-                    {/* Remove button - only shown to master admin for non-master admins */}
-                    {isMasterAdmin && admin.email !== 'admin@silver.com' && (
+                    {/* Remove button - only shown to master admin for non-self admins */}
+                    {isMasterAdmin && admin.user_id !== user?.id && (
                       <AlertDialog>
                         <AlertDialogTrigger asChild>
                           <Button 
@@ -424,15 +430,16 @@ export default function AdminUsersPage() {
           <div className="text-blue-800 space-y-2 text-xs sm:text-sm">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-4">
               <div>
-                <p><strong>Admin Type:</strong> Single admin role with full permissions</p>
-                <p><strong>Permissions:</strong> All admins can manage products, categories, and add other admins</p>
-                <p><strong>Remove Admins:</strong> Only Master Admin can remove other admin users</p>
+                <p><strong>Admin Types:</strong> Regular Admin and Master Admin roles</p>
+                <p><strong>Regular Admin:</strong> Can manage products, categories, and add regular admins</p>
+                <p><strong>Master Admin:</strong> Full privileges including admin management and creating master admins</p>
               </div>
               <div>
-                <p><strong>Security:</strong> Admin access is database-driven, not environment-based</p>
-                <p><strong>Note:</strong> Users must be registered on the website before being made admin</p>
+                <p><strong>Security:</strong> Role-based access control with database validation</p>
+                <p><strong>Protection:</strong> Cannot remove the last master admin or deactivate yourself</p>
+                <p><strong>Note:</strong> Users must register on the website before being made admin</p>
                 {isMasterAdmin && (
-                  <p><strong>Master Admin:</strong> You have full admin management privileges</p>
+                  <p><strong>Your Role:</strong> You have master admin privileges</p>
                 )}
               </div>
             </div>

@@ -15,9 +15,20 @@ export async function createClient() {
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
       cookies: {
-        get: (name: string) => cookieStore.get(name)?.value,        set: (name: string, value: string, options: CookieOptions) => {
+        get: (name: string) => {
+          const cookie = cookieStore.get(name)
+          return cookie?.value
+        },        set: (name: string, value: string, options: CookieOptions) => {
           try {
-            cookieStore.set({ name, value, ...options })
+            cookieStore.set({ 
+              name, 
+              value, 
+              ...options,
+              // Ensure secure settings for auth cookies
+              httpOnly: options.httpOnly ?? true,
+              secure: options.secure ?? (process.env.NODE_ENV === 'production'),
+              sameSite: options.sameSite ?? 'lax'
+            })
           } catch {
             // In read-only contexts, we can't set cookies, so we silently ignore
             // This is expected behavior for SSG pages
@@ -25,7 +36,13 @@ export async function createClient() {
         },
         remove: (name: string, options: CookieOptions) => {
           try {
-            cookieStore.set({ name, value: '', ...options, maxAge: 0 })
+            cookieStore.set({ 
+              name, 
+              value: '', 
+              ...options, 
+              maxAge: 0,
+              expires: new Date(0)
+            })
           } catch {
             // In read-only contexts, we can't remove cookies, so we silently ignore
             // This is expected behavior for SSG pages

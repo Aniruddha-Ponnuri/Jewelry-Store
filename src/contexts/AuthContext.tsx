@@ -4,22 +4,15 @@ import { createContext, useContext, useEffect, useState, useCallback } from 'rea
 import { User as SupabaseUser } from '@supabase/supabase-js'
 import { createClient } from '@/lib/supabase/client'
 import { User } from '@/types/database'
-
-interface AdminPermissions {
-  products: boolean
-  categories: boolean
-  users: boolean
-  admins: boolean
-}
+import { getAdminStatusWithCache, clearAdminCache } from '@/lib/adminSession'
+import '@/lib/debugAuth' // Import debug helper
 
 interface AuthContextType {
   user: SupabaseUser | null
   userProfile: User | null
   isAdmin: boolean
-  adminPermissions: AdminPermissions | null
   loading: boolean
   signOut: () => Promise<void>
-  forceSignOut: () => Promise<void>
   refreshAdminStatus: () => Promise<void>
 }
 
@@ -29,85 +22,43 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<SupabaseUser | null>(null)
   const [userProfile, setUserProfile] = useState<User | null>(null)
   const [isAdmin, setIsAdmin] = useState(false)
-  const [adminPermissions, setAdminPermissions] = useState<AdminPermissions | null>(null)
   const [loading, setLoading] = useState(true)
   const [mounted, setMounted] = useState(false)
+  const [adminChecked, setAdminChecked] = useState(false)
   const supabase = createClient()
 
-  const checkAdminStatus = useCallback(async (currentUser: SupabaseUser | null) => {
+  const checkAdminStatus = useCallback(async (currentUser: SupabaseUser | null, retryCount = 0) => {
     if (!currentUser) {
       setIsAdmin(false)
-      setAdminPermissions(null)
+      setAdminChecked(true)
+      clearAdminCache()
       return
     }
 
     try {
-      // Use the is_admin function from the new admin system
-      const { data: adminCheck, error } = await supabase.rpc('is_admin')
-
-      if (error) {
-        console.error('Error checking admin status:', error)
-        // Don't immediately reset admin state on error to prevent loss during form submissions
-        if (error.message?.includes('JWT') || error.message?.includes('session') || 
-            error.message?.includes('fetch') || error.message?.includes('network')) {
-          console.log('Temporary error detected, maintaining admin state and retrying admin check')
-          // Retry after a delay without resetting admin state
-          setTimeout(() => checkAdminStatus(currentUser), 2000)
-          return // Don't reset admin state
-        } else {
-          // Only reset on non-temporary errors
-          console.log('Persistent error, resetting admin state')
-          setIsAdmin(false)
-          setAdminPermissions(null)
-        }
-      } else {
-        const isAdminUser = Boolean(adminCheck)
-        setIsAdmin(isAdminUser)
-        // Get actual permissions from the new admin system
-        if (isAdminUser) {
-          try {
-            const { data: permissions } = await supabase.rpc('get_admin_permissions')
-            setAdminPermissions(permissions || {
-              products: true,
-              categories: true,
-              users: false,
-              admins: false
-            })
-          } catch (error) {
-            console.error('Error getting admin permissions:', error)
-            // Fallback permissions for regular admin
-            setAdminPermissions({
-              products: true,
-              categories: true,
-              users: false,
-              admins: false
-            })
-          }
-        } else {
-          setAdminPermissions(null)
-        }
-      }
+      console.log('Checking admin status for user:', currentUser.id)
+      
+      // Use enhanced admin status check with caching
+      const adminStatus = await getAdminStatusWithCache(currentUser.id)
+      
+      console.log('Admin status result:', adminStatus)
+      setIsAdmin(adminStatus)
+      setAdminChecked(true)
     } catch (error) {
       console.error('Error checking admin status:', error)
-      // Don't immediately reset admin state on network errors to prevent loss during form submissions
-      if (error instanceof Error && (
-          error.message?.includes('fetch') || 
-          error.message?.includes('network') ||
-          error.message?.includes('Failed to fetch') ||
-          error.name === 'TypeError'
-        )) {
-        console.log('Network/fetch error detected, maintaining admin state and retrying admin check')
-        setTimeout(() => checkAdminStatus(currentUser), 3000)
-        return // Don't reset admin state
-      } else {
-        // Only reset on non-network errors
-        console.log('Non-network error, resetting admin state')
-        setIsAdmin(false)
-        setAdminPermissions(null)
+      if (retryCount < 2) {
+        setTimeout(() => checkAdminStatus(currentUser, retryCount + 1), 1000)
+        return
       }
+      setIsAdmin(false)
+      setAdminChecked(true)
+      clearAdminCache()
     }
-  }, [supabase])
+  }, [])
   const refreshAdminStatus = async () => {
+    setAdminChecked(false)
+    // Clear cached admin status
+    clearAdminCache()
     await checkAdminStatus(user)
   }
 
@@ -116,51 +67,44 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     
     const getUser = async () => {
       try {
-        const { data: { user } } = await supabase.auth.getUser()
-        setUser(user)
+        console.log('Getting initial user session...')
         
-        if (user) {
-          // Get user profile and admin status in parallel
-          const [profileResult, adminResult] = await Promise.allSettled([
-            supabase.from('users').select('*').eq('user_id', user.id).single(),
-            supabase.rpc('is_admin')
-          ])
+        // First, try to get the session
+        const { data: { session }, error: sessionError } = await supabase.auth.getSession()
+        
+        if (sessionError) {
+          console.error('Session error:', sessionError)
+        }
+        
+        if (session?.user) {
+          console.log('Found existing session for user:', session.user.id)
+          setUser(session.user)
           
-          if (profileResult.status === 'fulfilled') {
-            setUserProfile(profileResult.value.data)
-          }
+          // Get user profile
+          const { data: profile } = await supabase
+            .from('users')
+            .select('*')
+            .eq('user_id', session.user.id)
+            .single()
+          setUserProfile(profile)
           
-          if (adminResult.status === 'fulfilled') {
-            const isAdminUser = Boolean(adminResult.value.data)
-            setIsAdmin(isAdminUser)
-            if (isAdminUser) {
-              // Try to get actual permissions
-              supabase.rpc('get_admin_permissions').then(({ data: permissions, error }) => {
-                if (error) {
-                  console.error('Error getting admin permissions:', error)
-                  // Fallback permissions
-                  setAdminPermissions({
-                    products: true,
-                    categories: true,
-                    users: false,
-                    admins: false
-                  })
-                } else {
-                  setAdminPermissions(permissions || {
-                    products: true,
-                    categories: true,
-                    users: false,
-                    admins: false
-                  })
-                }
-              })
-            } else {
-              setAdminPermissions(null)
-            }
-          }
+          // Check admin status with slight delay to ensure session is fully restored
+          setTimeout(() => {
+            checkAdminStatus(session.user)
+          }, 100)
+        } else {
+          console.log('No existing session found')
+          setUser(null)
+          setUserProfile(null)
+          setIsAdmin(false)
+          setAdminChecked(true)
         }
       } catch (error) {
         console.error('Error getting user:', error)
+        setUser(null)
+        setUserProfile(null)
+        setIsAdmin(false)
+        setAdminChecked(true)
       } finally {
         setLoading(false)
       }
@@ -171,9 +115,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         try {
-          setUser(session?.user || null)
+          console.log('Auth state change:', event, session?.user?.id)
+          
+          if (event === 'SIGNED_OUT') {
+            setUser(null)
+            setUserProfile(null)
+            setIsAdmin(false)
+            setAdminChecked(true)
+            // Clear cached admin status on sign out
+            clearAdminCache()
+            return
+          }
           
           if (session?.user) {
+            setUser(session.user)
+            
             const { data: profile } = await supabase
               .from('users')
               .select('*')
@@ -181,11 +137,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               .single()
             setUserProfile(profile)
             
+            // Reset admin status and check again
+            setAdminChecked(false)
             await checkAdminStatus(session.user)
           } else {
+            setUser(null)
             setUserProfile(null)
             setIsAdmin(false)
-            setAdminPermissions(null)
+            setAdminChecked(true)
           }
         } catch (error) {
           console.error('Error in auth state change:', error)
@@ -195,7 +154,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
     )
 
-    return () => subscription.unsubscribe()  }, [supabase, checkAdminStatus])
+    return () => subscription.unsubscribe()
+  }, [supabase, checkAdminStatus])
 
   const signOut = async () => {
     try {
@@ -206,7 +166,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setUser(null)
       setUserProfile(null)
       setIsAdmin(false)
-      setAdminPermissions(null)
+      setAdminChecked(true)
+      
+      // Clear cached admin status
+      clearAdminCache()
       
       // Create promises for both logout operations
       console.log('Initiating Supabase and API logout...')
@@ -247,43 +210,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }
 
-  const forceSignOut = async () => {
-    try {
-      console.log('Starting force logout...')
-      
-      // Clear client-side auth state immediately
-      setUser(null)
-      setUserProfile(null)
-      setIsAdmin(false)
-      setAdminPermissions(null)
-      
-      // Only try Supabase client logout
-      await supabase.auth.signOut()
-      
-      // Clear localStorage/sessionStorage
-      if (typeof window !== 'undefined') {
-        localStorage.clear()
-        sessionStorage.clear()
-      }
-      
-      // Force reload
-      window.location.href = '/'
-    } catch (error) {
-      console.error('Force logout error:', error)
-      // Force reload anyway
-      window.location.href = '/'
-    }
-  }
-
   return (
     <AuthContext.Provider value={{ 
       user, 
       userProfile, 
       isAdmin, 
-      adminPermissions, 
-      loading: !mounted || loading, 
+      loading: !mounted || loading || (!!user && !adminChecked), 
       signOut, 
-      forceSignOut,
       refreshAdminStatus 
     }}>
       {children}

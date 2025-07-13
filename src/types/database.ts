@@ -34,11 +34,11 @@ export interface AdminUser {
   admin_id?: string; // May not exist depending on table setup
   user_id: string;
   email: string;
+  role: 'master_admin' | 'admin';
   is_active: boolean;
   created_at: string;
   updated_at: string;
   // Computed/virtual fields for compatibility
-  role?: 'admin'; // All admins have the same role
   permissions?: {
     products: boolean;
     categories: boolean;
@@ -120,6 +120,7 @@ export type Database = {
       add_admin: {
         Args: { 
           admin_email: string;
+          admin_role?: string;
         };
         Returns: string;
       };
@@ -127,14 +128,26 @@ export type Database = {
         Args: { admin_email: string };
         Returns: string;
       };
+      is_master_admin: {
+        Args: Record<string, never>;
+        Returns: boolean;
+      };
+      get_master_admin_emails: {
+        Args: Record<string, never>;
+        Returns: string[];
+      };
       debug_admin_status: {
         Args: Record<string, never>;
         Returns: {
           user_id: string | null;
           is_admin_function_result: boolean | null;
+          is_master_admin_function_result: boolean | null;
           total_active_admins: number;
+          total_master_admins: number;
+          master_admin_emails: string[];
           user_admin_record_exists: boolean;
           user_admin_is_active: boolean | null;
+          admin_role: string | null;
           admin_email: string | null;
           timestamp: string;
           error?: boolean;
