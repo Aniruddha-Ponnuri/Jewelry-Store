@@ -58,11 +58,51 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const refreshAdminStatus = async () => {
     console.log('Refreshing admin status...')
     setAdminChecked(false)
-    setIsAdmin(false) // Reset to false immediately
+    setIsAdmin(false)
+    
     // Clear cached admin status to force fresh check
     clearAdminCache()
+    
     if (user) {
-      await checkAdminStatus(user)
+      // Force a direct database check without cache
+      try {
+        const supabase = createClient()
+        const { data: { session }, error: sessionError } = await supabase.auth.getSession()
+        
+        if (sessionError || !session) {
+          console.log('No valid session during refresh')
+          setIsAdmin(false)
+          setAdminChecked(true)
+          return
+        }
+        
+        const { data: adminCheck, error } = await supabase.rpc('is_admin')
+        
+        if (error) {
+          console.error('Error refreshing admin status:', error)
+          setIsAdmin(false)
+        } else {
+          const adminStatus = Boolean(adminCheck)
+          console.log('Refreshed admin status:', adminStatus)
+          setIsAdmin(adminStatus)
+          
+          // Update cache with fresh status
+          if (typeof window !== 'undefined') {
+            try {
+              const { cacheAdminStatus } = await import('@/lib/adminSession')
+              cacheAdminStatus(user.id, adminStatus, session.access_token)
+            } catch {
+              // Ignore cache update errors
+            }
+          }
+        }
+        
+        setAdminChecked(true)
+      } catch (error) {
+        console.error('Error in refreshAdminStatus:', error)
+        setIsAdmin(false)
+        setAdminChecked(true)
+      }
     } else {
       setAdminChecked(true)
     }

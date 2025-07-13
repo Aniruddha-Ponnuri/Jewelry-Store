@@ -1,9 +1,10 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useAuth } from '@/contexts/AuthContext'
 import { useAdmin } from '@/hooks/useAdmin'
 import { getCachedAdminStatus, clearAdminCache } from '@/lib/adminSession'
+import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -18,10 +19,45 @@ export default function AdminStatusDebug({ minimal = false }: AdminStatusDebugPr
   const { isAdmin: hookIsAdmin, loading: hookLoading } = useAdmin()
   const [refreshing, setRefreshing] = useState(false)
   const [expanded, setExpanded] = useState(!minimal)
+  const [isMasterAdmin, setIsMasterAdmin] = useState(false)
+  const [masterAdminLoading, setMasterAdminLoading] = useState(true)
+
+  // Check if current user is master admin
+  useEffect(() => {
+    const checkMasterAdmin = async () => {
+      if (!user) {
+        setIsMasterAdmin(false)
+        setMasterAdminLoading(false)
+        return
+      }
+
+      try {
+        const supabase = createClient()
+        const { data: isMaster, error } = await supabase.rpc('is_master_admin')
+        
+        if (error) {
+          console.error('Error checking master admin status:', error)
+          setIsMasterAdmin(false)
+        } else {
+          setIsMasterAdmin(Boolean(isMaster))
+        }
+      } catch (error) {
+        console.error('Error checking master admin status:', error)
+        setIsMasterAdmin(false)
+      } finally {
+        setMasterAdminLoading(false)
+      }
+    }
+
+    checkMasterAdmin()
+  }, [user])
 
   const handleRefresh = async () => {
     setRefreshing(true)
     try {
+      // First clear cache
+      clearAdminCache()
+      // Then refresh admin status
       await refreshAdminStatus()
     } finally {
       setRefreshing(false)
@@ -30,7 +66,17 @@ export default function AdminStatusDebug({ minimal = false }: AdminStatusDebugPr
 
   const handleClearCache = () => {
     clearAdminCache()
+    // Force a page refresh to show immediate effect
     window.location.reload()
+  }
+
+  // Only show to master admins
+  if (masterAdminLoading) {
+    return null
+  }
+
+  if (!isMasterAdmin) {
+    return null
   }
 
   if (!user) {
@@ -130,6 +176,11 @@ export default function AdminStatusDebug({ minimal = false }: AdminStatusDebugPr
               Cached: {cachedStatus === null ? 'No Cache' : (cachedStatus ? 'Admin' : 'Not Admin')}
             </Badge>
           </div>
+          {cachedStatus !== null && (
+            <p className="text-xs text-amber-700 mt-1">
+              Cache is being used. Click &ldquo;Clear Cache&rdquo; to force a fresh database check.
+            </p>
+          )}
         </div>
 
         <div>

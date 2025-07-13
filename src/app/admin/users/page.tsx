@@ -167,6 +167,18 @@ export default function AdminUsersPage() {
     }
   }
   const toggleAdminStatus = async (adminUser: AdminUser) => {
+    // Only master admins can deactivate other admins
+    if (!isMasterAdmin) {
+      setMessage({ type: 'error', text: 'Only master admins can activate/deactivate other admin accounts' })
+      return
+    }
+
+    // Prevent deactivating yourself
+    if (adminUser.user_id === user?.id) {
+      setMessage({ type: 'error', text: 'You cannot deactivate your own admin account' })
+      return
+    }
+
     // Prevent deactivating master admins if they are the last one
     if (adminUser.role === 'master_admin' && adminUser.is_active) {
       const activeMasterAdmins = adminUsers.filter(admin => 
@@ -180,15 +192,19 @@ export default function AdminUsersPage() {
     }
 
     try {
-      // Use user_id as the primary key since admin_id might not exist
+      console.log('Toggling admin status for user:', adminUser.user_id, 'from', adminUser.is_active, 'to', !adminUser.is_active)
+      
       const { error } = await supabase
         .from('admin_users')
-        .update({ is_active: !adminUser.is_active, updated_at: new Date().toISOString() })
+        .update({ 
+          is_active: !adminUser.is_active, 
+          updated_at: new Date().toISOString() 
+        })
         .eq('user_id', adminUser.user_id)
 
       if (error) {
         console.error('Error updating admin status:', error)
-        setMessage({ type: 'error', text: 'Failed to update admin status' })
+        setMessage({ type: 'error', text: `Failed to update admin status: ${error.message}` })
         return
       }
 
@@ -196,8 +212,15 @@ export default function AdminUsersPage() {
         type: 'success', 
         text: `Admin ${adminUser.is_active ? 'deactivated' : 'activated'} successfully` 
       })
+      
+      // Reload admin users list and master admin status
       await loadAdminUsers()
       await loadMasterAdminStatus()
+      
+      // If we deactivated an admin, also refresh the current user's admin status
+      if (adminUser.user_id === user?.id) {
+        await refreshAdminStatus()
+      }
     } catch (error) {
       console.error('Error updating admin status:', error)
       setMessage({ type: 'error', text: 'Failed to update admin status' })
@@ -409,13 +432,35 @@ export default function AdminUsersPage() {
                       </p>
                     </div>
                   </div>                  <div className="flex gap-3 w-full sm:w-auto sm:flex-col lg:flex-row">
-                    {/* Activate/Deactivate button - disabled for master admin deactivation */}
+                    {/* Activate/Deactivate button - available for all admins on other users, master admins can control all */}
                     <Button
                       variant="outline"
                       size="lg"
                       onClick={() => toggleAdminStatus(admin)}
-                      disabled={admin.role === 'master_admin' && admin.is_active && adminUsers.filter(a => a.role === 'master_admin' && a.is_active).length <= 1}
-                      className="flex-1 sm:flex-initial px-6 py-3 text-base font-medium hover:scale-105 active:scale-95 transition-all duration-200 shadow-sm hover:shadow-md border-2 hover:border-amber-300"
+                      disabled={
+                        // Regular admins can only deactivate themselves
+                        (!isMasterAdmin && admin.user_id !== user?.id) ||
+                        // Cannot deactivate yourself regardless of role
+                        (admin.user_id === user?.id) ||
+                        // Cannot deactivate last master admin
+                        (admin.role === 'master_admin' && admin.is_active && adminUsers.filter(a => a.role === 'master_admin' && a.is_active).length <= 1)
+                      }
+                      className={`flex-1 sm:flex-initial px-6 py-3 text-base font-medium transition-all duration-200 shadow-sm border-2 ${
+                        (!isMasterAdmin && admin.user_id !== user?.id) ||
+                        (admin.user_id === user?.id) || 
+                        (admin.role === 'master_admin' && admin.is_active && adminUsers.filter(a => a.role === 'master_admin' && a.is_active).length <= 1)
+                          ? 'border-gray-300 text-gray-500 cursor-not-allowed' 
+                          : 'hover:scale-105 active:scale-95 hover:shadow-md hover:border-amber-300'
+                      }`}
+                      title={
+                        !isMasterAdmin && admin.user_id !== user?.id
+                          ? "Only master admins can manage other admin accounts"
+                          : admin.user_id === user?.id 
+                            ? "You cannot deactivate your own account" 
+                            : (admin.role === 'master_admin' && admin.is_active && adminUsers.filter(a => a.role === 'master_admin' && a.is_active).length <= 1)
+                              ? "Cannot deactivate the last master admin"
+                              : undefined
+                      }
                     >
                       <span className="flex items-center gap-2">
                         {admin.is_active ? (
@@ -447,19 +492,21 @@ export default function AdminUsersPage() {
                             </span>
                           </Button>
                         </AlertDialogTrigger>
-                        <AlertDialogContent className="w-[95vw] max-w-md mx-auto">
-                          <AlertDialogHeader>
-                            <AlertDialogTitle className="text-base sm:text-lg">Remove Admin Access</AlertDialogTitle>
-                            <AlertDialogDescription className="break-words text-sm">
-                              Are you sure you want to remove admin access from {admin.email}? 
-                              This action cannot be undone.
+                        <AlertDialogContent className="bg-white border-2 border-red-200 shadow-xl max-w-md w-[95vw] mx-auto">
+                          <AlertDialogHeader className="bg-red-50 -m-6 mb-4 p-6 border-b border-red-200">
+                            <AlertDialogTitle className="text-lg text-red-900 font-semibold">Remove Admin Access</AlertDialogTitle>
+                            <AlertDialogDescription className="text-sm text-red-700 mt-2">
+                              Are you sure you want to remove admin access from <strong className="font-semibold">{admin.email}</strong>? 
+                              This action cannot be undone and will immediately revoke all admin privileges.
                             </AlertDialogDescription>
                           </AlertDialogHeader>
-                          <AlertDialogFooter className="flex-col-reverse sm:flex-row gap-2">
-                            <AlertDialogCancel className="w-full sm:w-auto px-4 py-2 text-base hover:scale-105 active:scale-95 transition-all duration-200">Cancel</AlertDialogCancel>
+                          <AlertDialogFooter className="flex-col-reverse sm:flex-row gap-3 pt-4">
+                            <AlertDialogCancel className="w-full sm:w-auto px-6 py-3 text-base font-medium hover:scale-105 active:scale-95 transition-all duration-200 bg-gray-100 hover:bg-gray-200 border-2 border-gray-300 text-gray-800">
+                              Cancel
+                            </AlertDialogCancel>
                             <AlertDialogAction
                               onClick={() => removeAdmin(admin.email)}
-                              className="bg-red-600 hover:bg-red-700 w-full sm:w-auto px-4 py-2 text-base hover:scale-105 active:scale-95 transition-all duration-200"
+                              className="bg-red-600 hover:bg-red-700 w-full sm:w-auto px-6 py-3 text-base font-medium hover:scale-105 active:scale-95 transition-all duration-200 text-white border-2 border-red-600 hover:border-red-700"
                             >
                               Remove Admin
                             </AlertDialogAction>
@@ -475,8 +522,8 @@ export default function AdminUsersPage() {
         </CardContent>
       </Card>
 
-      {/* Admin Status Debug Component */}
-      <AdminStatusDebug />
+      {/* Admin Status Debug Component - Only for Master Admins */}
+      {isMasterAdmin && <AdminStatusDebug />}
 
       {/* Info Card */}
       <Card className="mt-4 sm:mt-6 lg:mt-8 bg-blue-50 border-blue-200">
@@ -488,13 +535,23 @@ export default function AdminUsersPage() {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-4">
               <div>
                 <p><strong>Admin Types:</strong> Regular Admin and Master Admin roles</p>
-                <p><strong>Regular Admin:</strong> Can manage products and categories only</p>
-                <p><strong>Master Admin:</strong> Full privileges including admin management, adding/removing admins, and creating master admins</p>
+                {isMasterAdmin ? (
+                  <>
+                    <p><strong>Master Admin:</strong> Full privileges including admin management, adding/removing admins, and creating master admins</p>
+                    <p><strong>Regular Admin:</strong> Can manage products and categories only</p>
+                  </>
+                ) : (
+                  <p><strong>Regular Admin:</strong> You can manage products and categories. Contact a master admin for user management.</p>
+                )}
               </div>
               <div>
                 <p><strong>Security:</strong> Role-based access control with database validation</p>
-                <p><strong>Protection:</strong> Cannot remove the last master admin or deactivate yourself</p>
-                <p><strong>Note:</strong> Users must register on the website before being made admin</p>
+                {isMasterAdmin && (
+                  <>
+                    <p><strong>Protection:</strong> Cannot remove the last master admin or deactivate yourself</p>
+                    <p><strong>Note:</strong> Users must register on the website before being made admin</p>
+                  </>
+                )}
                 <p><strong>Your Role:</strong> {isMasterAdmin ? 'Master Admin (Full Access)' : 'Regular Admin (Product & Category Management)'}</p>
               </div>
             </div>

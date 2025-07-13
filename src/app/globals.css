@@ -1009,84 +1009,87 @@ body {
     border-color: #b91c1c !important;
   }
 
+  /* Alert Dialog improvements for better visibility */
+  [data-radix-dialog-overlay] {
+    background-color: rgba(0, 0, 0, 0.8) !important;
+    backdrop-filter: blur(4px) !important;
+  }
+  
+  [data-radix-dialog-content] {
+    background-color: white !important;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25) !important;
+    border: 2px solid #e5e7eb !important;
+    z-index: 9999 !important;
+  }
+
+  /* Admin alert dialog specific styling - Remove Admin Dialog */
+  .admin-alert-dialog {
+    background-color: white !important;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5) !important;
+    border: 3px solid #dc2626 !important;
+    border-radius: 12px !important;
+    z-index: 9999 !important;
+  }
+
+  .admin-alert-dialog-header {
+    background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%) !important;
+    border-bottom: 1px solid #fecaca !important;
+    border-radius: 12px 12px 0 0 !important;
+  }
+
+  /* Ensure all alert dialogs have solid backgrounds */
+  [data-radix-dialog-content][class*="AlertDialogContent"] {
+    background-color: white !important;
+    border: 2px solid #d1d5db !important;
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04) !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+
+  /* Enhanced solid styling for admin remove dialog */
+  .bg-white.border-2.border-red-200.shadow-xl {
+    background-color: white !important;
+    border: 2px solid #fecaca !important;
+    box-shadow: 0 25px 50px -12px rgba(220, 38, 38, 0.25) !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+
+  /* Ensure button backgrounds are solid - using proper CSS selectors */
+  .bg-red-600 {
+    background-color: #dc2626 !important;
+  }
+
+  .bg-red-600:hover {
+    background-color: #b91c1c !important;
+  }
+
+  .bg-gray-100 {
+    background-color: #f3f4f6 !important;
+  }
+
+  .bg-gray-100:hover {
+    background-color: #e5e7eb !important;
+  }
+
   /* Mobile dialog improvements */
   @media (max-width: 640px) {
-    [role="dialog"] {
-      margin: 0 !important;
-    }
-    
-    /* Ensure mobile dialogs scroll properly */
-    .mobile-dialog-content {
-      max-height: 85vh;
-      overflow-y: auto;
-      -webkit-overflow-scrolling: touch;
-    }
-    
-    /* Improve mobile form field spacing */
-    .mobile-form-spacing > * + * {
-      margin-top: 0.75rem;
+    [data-radix-dialog-content] {
+      margin: 1rem !important;
+      width: calc(100vw - 2rem) !important;
+      max-width: none !important;
     }
   }
 
-  /* Smooth scrolling for mobile */
-  @supports (-webkit-touch-callout: none) {
-    .mobile-dialog-content {
-      -webkit-overflow-scrolling: touch;
-    }
+  /* Disabled button improvements */
+  .admin-button-disabled {
+    opacity: 0.5 !important;
+    cursor: not-allowed !important;
+    pointer-events: auto !important;
   }
 
-  /* Enhanced Switch styling for better visibility */
-  .stock-switch[data-state="checked"] {
-    background-color: #22c55e !important; /* Green for in stock */
-  }
-  
-  .stock-switch[data-state="unchecked"] {
-    background-color: #ef4444 !important; /* Red for out of stock */
-  }
-  
-  .featured-switch[data-state="checked"] {
-    background-color: #f59e0b !important; /* Amber for featured */
-  }
-  
-  .featured-switch[data-state="unchecked"] {
-    background-color: #6b7280 !important; /* Gray for not featured */
-  }
-
-  /* Switch thumb styling */
-  .stock-switch [data-slot="switch-thumb"],
-  .featured-switch [data-slot="switch-thumb"] {
-    background-color: white !important;
-    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1) !important;
-  }
-
-  /* Enhanced switch labels with color coding and better visibility */
-  .stock-label {
-    font-weight: 500;
-    display: flex;
-    align-items: center;
-    gap: 0.25rem;
-  }
-  
-  .stock-label.in-stock {
-    color: #22c55e;
-  }
-  
-  .stock-label.out-of-stock {
-    color: #ef4444;
-  }
-  
-  .featured-label {
-    display: flex;
-    align-items: center;
-    gap: 0.25rem;
-  }
-  
-  .featured-label.featured {
-    color: #f59e0b;
-    font-weight: 500;
-  }
-  
-  .featured-label.not-featured {
-    color: #6b7280;
+  .admin-button-disabled:hover {
+    transform: none !important;
+    box-shadow: none !important;
   }
 }

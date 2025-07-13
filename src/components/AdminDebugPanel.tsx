@@ -15,8 +15,8 @@ interface AdminDebugInfo {
   isAdminFromContext: boolean
   isAdminFromDb: boolean | null
   cachedAdminStatus: boolean | null
-  adminDbRecord: any
-  sessionInfo: any
+  adminDbRecord: Record<string, unknown> | null
+  sessionInfo: Record<string, unknown> | null
   errors: string[]
 }
 
@@ -173,9 +173,9 @@ export default function AdminDebugPanel() {
               </div>
               {debugInfo.sessionInfo && (
                 <div className="text-sm space-y-1">
-                  <p><strong>Access Token:</strong> {debugInfo.sessionInfo.accessToken}</p>
-                  <p><strong>Refresh Token:</strong> {debugInfo.sessionInfo.refreshToken}</p>
-                  <p><strong>Expires At:</strong> {debugInfo.sessionInfo.expiresAt}</p>
+                  <p><strong>Access Token:</strong> {String(debugInfo.sessionInfo.accessToken || 'N/A')}</p>
+                  <p><strong>Refresh Token:</strong> {String(debugInfo.sessionInfo.refreshToken || 'N/A')}</p>
+                  <p><strong>Expires At:</strong> {String(debugInfo.sessionInfo.expiresAt || 'N/A')}</p>
                 </div>
               )}
             </div>
@@ -199,9 +199,9 @@ export default function AdminDebugPanel() {
               <div>
                 <h4 className="font-semibold mb-2">Admin Record</h4>
                 <div className="text-sm space-y-1">
-                  <p><strong>Role:</strong> {debugInfo.adminDbRecord.role}</p>
+                  <p><strong>Role:</strong> {String(debugInfo.adminDbRecord.role || 'N/A')}</p>
                   <p><strong>Active:</strong> {debugInfo.adminDbRecord.is_active ? 'Yes' : 'No'}</p>
-                  <p><strong>Created:</strong> {new Date(debugInfo.adminDbRecord.created_at).toLocaleString()}</p>
+                  <p><strong>Created:</strong> {debugInfo.adminDbRecord.created_at ? new Date(String(debugInfo.adminDbRecord.created_at)).toLocaleString() : 'N/A'}</p>
                 </div>
               </div>
             )}

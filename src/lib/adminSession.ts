@@ -87,35 +87,29 @@ export async function verifyAndCacheAdminStatus(userId: string): Promise<boolean
     const { data: { session }, error: sessionError } = await supabase.auth.getSession()
     
     if (sessionError || !session || session.user.id !== userId) {
-      console.log('Invalid session, clearing admin cache')
+      console.log('Invalid or missing session during admin verification')
       clearAdminCache()
       return false
     }
     
-    // Check admin status
+    // Check admin status with database
     const { data: adminCheck, error } = await supabase.rpc('is_admin')
     
     if (error) {
       console.error('Error verifying admin status:', error)
-      // Clear cache on error to force re-check next time
-      clearAdminCache()
+      // Don't cache errors, but don't clear cache either in case it's temporary
       return false
     }
     
     const isAdmin = Boolean(adminCheck)
     
-    // Always cache the result, whether true or false
+    // Always cache the result (even if false) to prevent unnecessary database calls
     cacheAdminStatus(userId, isAdmin, session.access_token)
     
-    // If admin status is false, log for debugging
-    if (!isAdmin) {
-      console.log('User is not admin, cached false status')
-    }
-    
+    console.log('Admin status verified and cached:', { userId, isAdmin })
     return isAdmin
   } catch (error) {
     console.error('Error in verifyAndCacheAdminStatus:', error)
-    clearAdminCache()
     return false
   }
 }

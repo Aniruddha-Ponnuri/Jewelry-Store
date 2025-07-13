@@ -14,6 +14,7 @@ import AdminLayout from '@/components/AdminLayout'
 import { Switch } from '@/components/ui/switch'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
+
 import { Badge } from '@/components/ui/badge'
 import { Plus, Edit, Trash2 } from 'lucide-react'
 import { Alert, AlertDescription } from '@/components/ui/alert'
@@ -32,6 +33,7 @@ export default function AdminProducts() {
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [imageFile, setImageFile] = useState<File | null>(null)
   const [uploading, setUploading] = useState(false)
+  const [deletingProducts, setDeletingProducts] = useState<Set<string>>(new Set())
   const fileInputRef = useRef<HTMLInputElement>(null)
   const supabase = createClient()
   // Check admin status from database instead of environment variable
@@ -196,33 +198,95 @@ export default function AdminProducts() {
   }
 
   const deleteProduct = async (productId: string) => {
-    if (window.confirm('Are you sure you want to delete this product?')) {
+    console.log('Attempting to delete product:', productId)
+    
+    if (window.confirm('Are you sure you want to delete this product? This action cannot be undone.')) {
+      // Add product to deleting state
+      setDeletingProducts(prev => new Set(prev.add(productId)))
+      setError(null)
+      
       try {
-        // Get product to delete image
-        const { data: product } = await supabase
+        // Get product details first to delete image and verify existence
+        const { data: product, error: fetchError } = await supabase
           .from('products')
-          .select('image_path')
+          .select('product_id, name, image_path')
           .eq('product_id', productId)
           .single()
 
-        // Delete product image if exists
-        if (product?.image_path) {
-          await supabase.storage
-            .from('product_images')
-            .remove([product.image_path])
+        if (fetchError) {
+          console.error('Error fetching product for deletion:', fetchError)
+          throw new Error(`Failed to fetch product: ${fetchError.message}`)
         }
 
-        // Delete product
-        const { error } = await supabase
+        if (!product) {
+          throw new Error('Product not found')
+        }
+
+        console.log('Product found for deletion:', product.name)
+
+        // Delete product image if exists
+        if (product.image_path) {
+          console.log('Deleting product image:', product.image_path)
+          const { error: imageError } = await supabase.storage
+            .from('product_images')
+            .remove([product.image_path])
+          
+          if (imageError) {
+            console.warn('Failed to delete product image:', imageError.message)
+            // Continue with product deletion even if image deletion fails
+          } else {
+            console.log('Product image deleted successfully')
+          }
+        }
+
+        // Delete product from database
+        console.log('Deleting product from database...')
+        const { error: deleteError } = await supabase
           .from('products')
           .delete()
           .eq('product_id', productId)
 
-        if (error) throw error
+        if (deleteError) {
+          console.error('Error deleting product:', deleteError)
+          throw new Error(`Failed to delete product: ${deleteError.message}`)
+        }
+
+        console.log('Product deleted successfully')
         
-        fetchProducts()
+        // Refresh products list
+        await fetchProducts()
+        
+        // Show success message (you can add a toast notification here if available)
+        console.log(`Product "${product.name}" deleted successfully`)
+        
+        // Force cache revalidation
+        try {
+          await fetch('/api/revalidate', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ path: '/products' })
+          })
+        } catch (revalidateError) {
+          console.warn('Cache revalidation failed:', revalidateError)
+        }
+        
+        // Refresh admin status to prevent losing privileges
+        setTimeout(() => {
+          refreshAdminStatus()
+        }, 500)
+        
       } catch (error) {
-        setError(error instanceof Error ? error.message : 'Deletion failed')
+        console.error('Delete product error:', error)
+        const errorMessage = error instanceof Error ? error.message : 'Failed to delete product'
+        setError(errorMessage)
+        alert(`Error: ${errorMessage}`) // Show immediate feedback to user
+      } finally {
+        // Remove product from deleting state
+        setDeletingProducts(prev => {
+          const newSet = new Set(prev)
+          newSet.delete(productId)
+          return newSet
+        })
       }
     }
   }
@@ -286,7 +350,14 @@ export default function AdminProducts() {
     <AdminLayout 
       title="Product Management" 
       description="Manage your jewelry inventory"
-    >      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start mb-4 sm:mb-6 lg:mb-8 gap-3 sm:gap-4">
+    >
+      {error && (
+        <Alert variant="destructive" className="mb-6">
+          <AlertDescription className="text-sm font-medium">{error}</AlertDescription>
+        </Alert>
+      )}
+      
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start mb-4 sm:mb-6 lg:mb-8 gap-3 sm:gap-4">
         <div className="sm:hidden">
           {/* Mobile spacing placeholder */}
         </div>
@@ -569,10 +640,13 @@ export default function AdminProducts() {
                     variant="destructive"
                     size="sm"
                     onClick={() => deleteProduct(product.product_id)}
+                    disabled={deletingProducts.has(product.product_id)}
                     className="flex-1 sm:flex-initial text-xs admin-delete-button"
                   >
                     <Trash2 className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-0 lg:mr-1" />
-                    <span className="sm:hidden lg:inline">Delete</span>
+                    <span className="sm:hidden lg:inline">
+                      {deletingProducts.has(product.product_id) ? 'Deleting...' : 'Delete'}
+                    </span>
                   </Button>
                 </div>
               </div>
