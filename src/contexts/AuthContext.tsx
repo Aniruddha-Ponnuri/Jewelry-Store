@@ -56,10 +56,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, [])
   const refreshAdminStatus = async () => {
+    console.log('Refreshing admin status...')
     setAdminChecked(false)
-    // Clear cached admin status
+    setIsAdmin(false) // Reset to false immediately
+    // Clear cached admin status to force fresh check
     clearAdminCache()
-    await checkAdminStatus(user)
+    if (user) {
+      await checkAdminStatus(user)
+    } else {
+      setAdminChecked(true)
+    }
   }
 
   useEffect(() => {

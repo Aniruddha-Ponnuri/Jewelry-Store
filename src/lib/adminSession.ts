@@ -87,6 +87,7 @@ export async function verifyAndCacheAdminStatus(userId: string): Promise<boolean
     const { data: { session }, error: sessionError } = await supabase.auth.getSession()
     
     if (sessionError || !session || session.user.id !== userId) {
+      console.log('Invalid session, clearing admin cache')
       clearAdminCache()
       return false
     }
@@ -96,17 +97,25 @@ export async function verifyAndCacheAdminStatus(userId: string): Promise<boolean
     
     if (error) {
       console.error('Error verifying admin status:', error)
+      // Clear cache on error to force re-check next time
+      clearAdminCache()
       return false
     }
     
     const isAdmin = Boolean(adminCheck)
     
-    // Cache the result
+    // Always cache the result, whether true or false
     cacheAdminStatus(userId, isAdmin, session.access_token)
+    
+    // If admin status is false, log for debugging
+    if (!isAdmin) {
+      console.log('User is not admin, cached false status')
+    }
     
     return isAdmin
   } catch (error) {
     console.error('Error in verifyAndCacheAdminStatus:', error)
+    clearAdminCache()
     return false
   }
 }

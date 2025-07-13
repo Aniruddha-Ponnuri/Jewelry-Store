@@ -15,15 +15,17 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { useRouter } from 'next/navigation'
 import { AdminUser } from '@/types/database'
 import AdminLayout from '@/components/AdminLayout'
-import { Shield } from 'lucide-react'
+import AdminStatusDebug from '@/components/AdminStatusDebug'
+import { Shield, RefreshCw } from 'lucide-react'
 
 export default function AdminUsersPage() {
   const { isAdmin, loading: adminLoading } = useAdmin()
-  const { user } = useAuth()
+  const { user, refreshAdminStatus } = useAuth()
   const router = useRouter()
   const [adminUsers, setAdminUsers] = useState<(AdminUser & { full_name?: string })[]>([])
   const [loading, setLoading] = useState(true)
   const [addingAdmin, setAddingAdmin] = useState(false)
+  const [refreshingStatus, setRefreshingStatus] = useState(false)
   const [newAdminEmail, setNewAdminEmail] = useState('')
   const [newAdminRole, setNewAdminRole] = useState<'admin' | 'master_admin'>('admin')
   const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null)
@@ -202,6 +204,21 @@ export default function AdminUsersPage() {
     }
   }
 
+  // Refresh admin status function
+  const handleRefreshStatus = async () => {
+    setRefreshingStatus(true)
+    try {
+      await refreshAdminStatus()
+      await loadMasterAdminStatus()
+      setMessage({ type: 'success', text: 'Admin status refreshed successfully' })
+    } catch (error) {
+      console.error('Error refreshing admin status:', error)
+      setMessage({ type: 'error', text: 'Failed to refresh admin status' })
+    } finally {
+      setRefreshingStatus(false)
+    }
+  }
+
   // Memoize admin users to prevent unnecessary re-renders
   const memoizedAdminUsers = useMemo(() => adminUsers, [adminUsers])
 
@@ -236,71 +253,106 @@ export default function AdminUsersPage() {
             {message.text}
           </AlertDescription>
         </Alert>
-      )}      {/* Add New Admin */}
-      <Card className="mb-4 sm:mb-6 lg:mb-8">
-        <CardHeader className="pb-3 sm:pb-4">
-          <CardTitle className="text-lg sm:text-xl">Add New Admin</CardTitle>
-          <CardDescription className="text-xs sm:text-sm">
-            Add a new admin user by email. The user must already be registered on the website.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="flex flex-col gap-3 sm:gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="email" className="text-sm font-medium">Email Address</Label>              <Input
-                id="email"
-                type="email"
-                placeholder="Enter email address"
-                value={newAdminEmail}
-                onChange={(e) => setNewAdminEmail(e.target.value)}
-                className="text-sm sm:text-base px-4 py-3 border-2 focus:border-amber-400 focus:ring-2 focus:ring-amber-200 transition-all duration-200"
-                autoComplete="email"
-              />
+      )}
+
+      {/* Add New Admin - Only for Master Admins */}
+      {isMasterAdmin && (
+        <Card className="mb-4 sm:mb-6 lg:mb-8">
+          <CardHeader className="pb-3 sm:pb-4">
+            <CardTitle className="text-lg sm:text-xl">Add New Admin</CardTitle>
+            <CardDescription className="text-xs sm:text-sm">
+              Add a new admin user by email. The user must already be registered on the website.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="flex flex-col gap-3 sm:gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="email" className="text-sm font-medium">Email Address</Label>              <Input
+                  id="email"
+                  type="email"
+                  placeholder="Enter email address"
+                  value={newAdminEmail}
+                  onChange={(e) => setNewAdminEmail(e.target.value)}
+                  className="text-sm sm:text-base px-4 py-3 border-2 focus:border-amber-400 focus:ring-2 focus:ring-amber-200 transition-all duration-200"
+                  autoComplete="email"
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="role" className="text-sm font-medium">Admin Role</Label>
+                <Select value={newAdminRole} onValueChange={(value: 'admin' | 'master_admin') => setNewAdminRole(value)}>
+                  <SelectTrigger className="text-sm sm:text-base px-4 py-3 border-2 focus:border-amber-400 focus:ring-2 focus:ring-amber-200 transition-all duration-200">
+                    <SelectValue placeholder="Select admin role" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="admin">Regular Admin</SelectItem>
+                    <SelectItem value="master_admin">Master Admin</SelectItem>
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-gray-500">
+                  Master admins can add/remove other admins and create master admins. Regular admins can manage products and categories.
+                </p>
+              </div>            <Button 
+                onClick={addAdmin} 
+                disabled={addingAdmin || !newAdminEmail.trim()}
+                className="w-full sm:w-auto sm:self-start px-6 py-3 text-base font-semibold hover:scale-105 active:scale-95 transition-all duration-200 shadow-md hover:shadow-lg bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700"
+                size="lg"
+              >
+                <span className="flex items-center gap-2">
+                  {addingAdmin ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                      Adding Admin...
+                    </>
+                  ) : (
+                    <>
+                      <Shield className="w-4 h-4" />
+                      Add New Admin
+                    </>
+                  )}
+                </span>
+              </Button>
             </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="role" className="text-sm font-medium">Admin Role</Label>
-              <Select value={newAdminRole} onValueChange={(value: 'admin' | 'master_admin') => setNewAdminRole(value)}>
-                <SelectTrigger className="text-sm sm:text-base px-4 py-3 border-2 focus:border-amber-400 focus:ring-2 focus:ring-amber-200 transition-all duration-200">
-                  <SelectValue placeholder="Select admin role" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="admin">Regular Admin</SelectItem>
-                  <SelectItem value="master_admin">Master Admin</SelectItem>
-                </SelectContent>
-              </Select>
-              <p className="text-xs text-gray-500">
-                Master admins can add/remove other admins and create master admins. Regular admins can manage products and categories.
-              </p>
-            </div>            <Button 
-              onClick={addAdmin} 
-              disabled={addingAdmin || !newAdminEmail.trim()}
-              className="w-full sm:w-auto sm:self-start px-6 py-3 text-base font-semibold hover:scale-105 active:scale-95 transition-all duration-200 shadow-md hover:shadow-lg bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700"
-              size="lg"
-            >
-              <span className="flex items-center gap-2">
-                {addingAdmin ? (
-                  <>
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                    Adding Admin...
-                  </>
-                ) : (
-                  <>
-                    <Shield className="w-4 h-4" />
-                    Add New Admin
-                  </>
-                )}
-              </span>
-            </Button>
-          </div>
-        </CardContent>
-      </Card>      {/* Admin Users List */}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Non-Master Admin Notice */}
+      {!isMasterAdmin && (
+        <Card className="mb-4 sm:mb-6 lg:mb-8 bg-amber-50 border-amber-200">
+          <CardContent className="pt-6">
+            <div className="flex items-center gap-3">
+              <Shield className="w-5 h-5 text-amber-600" />
+              <div>
+                <p className="text-sm font-medium text-amber-800">Regular Admin Access</p>
+                <p className="text-xs text-amber-700">
+                  You can manage products and categories. Contact a master admin to add or remove admin users.
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}      {/* Admin Users List */}
       <Card>
         <CardHeader className="pb-3 sm:pb-4">
-          <CardTitle className="text-lg sm:text-xl">Current Admins</CardTitle>
-          <CardDescription className="text-xs sm:text-sm">
-            All users with admin access. Note: There is only one type of admin with full permissions.
-          </CardDescription>
+          <div className="flex justify-between items-start gap-4">
+            <div>
+              <CardTitle className="text-lg sm:text-xl">Current Admins</CardTitle>
+              <CardDescription className="text-xs sm:text-sm">
+                All users with admin access. Master admins have full privileges, regular admins can manage products and categories.
+              </CardDescription>
+            </div>
+            <Button
+              onClick={handleRefreshStatus}
+              disabled={refreshingStatus}
+              variant="outline"
+              size="sm"
+              className="flex items-center gap-2 text-xs"
+            >
+              <RefreshCw className={`w-3 h-3 ${refreshingStatus ? 'animate-spin' : ''}`} />
+              {refreshingStatus ? 'Refreshing...' : 'Refresh Status'}
+            </Button>
+          </div>
         </CardHeader>        <CardContent>
           {loading ? (
             <div className="space-y-4">
@@ -421,7 +473,12 @@ export default function AdminUsersPage() {
             </div>
           )}
         </CardContent>
-      </Card>      {/* Info Card */}
+      </Card>
+
+      {/* Admin Status Debug Component */}
+      <AdminStatusDebug />
+
+      {/* Info Card */}
       <Card className="mt-4 sm:mt-6 lg:mt-8 bg-blue-50 border-blue-200">
         <CardHeader className="pb-3 sm:pb-4">
           <CardTitle className="text-blue-900 text-base sm:text-lg">Admin System Information</CardTitle>
@@ -431,16 +488,14 @@ export default function AdminUsersPage() {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-4">
               <div>
                 <p><strong>Admin Types:</strong> Regular Admin and Master Admin roles</p>
-                <p><strong>Regular Admin:</strong> Can manage products, categories, and add regular admins</p>
-                <p><strong>Master Admin:</strong> Full privileges including admin management and creating master admins</p>
+                <p><strong>Regular Admin:</strong> Can manage products and categories only</p>
+                <p><strong>Master Admin:</strong> Full privileges including admin management, adding/removing admins, and creating master admins</p>
               </div>
               <div>
                 <p><strong>Security:</strong> Role-based access control with database validation</p>
                 <p><strong>Protection:</strong> Cannot remove the last master admin or deactivate yourself</p>
                 <p><strong>Note:</strong> Users must register on the website before being made admin</p>
-                {isMasterAdmin && (
-                  <p><strong>Your Role:</strong> You have master admin privileges</p>
-                )}
+                <p><strong>Your Role:</strong> {isMasterAdmin ? 'Master Admin (Full Access)' : 'Regular Admin (Product & Category Management)'}</p>
               </div>
             </div>
           </div>        </CardContent>
