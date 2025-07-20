@@ -13,6 +13,8 @@ import { Alert, AlertDescription } from '@/components/ui/alert'
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog'
 import { AdminUser } from '@/types/database'
 import RobustAdminLayout from '@/components/RobustAdminLayout'
+import AdminDebug from '@/components/AdminDebug'
+import AdminUsersDebug from '@/components/AdminUsersDebug'
 import { Shield, RefreshCw, Users, Crown, UserPlus } from 'lucide-react'
 
 export default function RobustAdminUsersPage() {
@@ -47,25 +49,20 @@ export default function RobustAdminUsersPage() {
       setError(null)
       console.log('👥 [AdminUsers] Loading users...')
 
-      // Get all admin users with their details
+      // Get all admin users - simplified query without joins
       const { data, error } = await supabase
         .from('admin_users')
-        .select(`
-          *,
-          user:user_id (
-            id,
-            email,
-            created_at
-          )
-        `)
+        .select('*')
         .eq('is_active', true)
         .order('created_at', { ascending: false })
 
       if (error) {
         console.error('❌ [AdminUsers] Error loading users:', error)
-        setError('Failed to load users')
+        setError(`Failed to load users: ${error.message}`)
         return
       }
+
+      console.log('🔍 [AdminUsers] Raw data received:', data)
 
       // Transform the data to match our expected format
       const transformedUsers = (data || []).map(adminUser => ({
@@ -82,7 +79,7 @@ export default function RobustAdminUsersPage() {
       console.log('✅ [AdminUsers] Users loaded:', transformedUsers.length)
     } catch (error) {
       console.error('❌ [AdminUsers] Unexpected error loading users:', error)
-      setError('Failed to load users')
+      setError(`Failed to load users: ${error instanceof Error ? error.message : 'Unknown error'}`)
     } finally {
       setLoading(false)
     }
@@ -90,9 +87,21 @@ export default function RobustAdminUsersPage() {
 
   // Load data when auth is ready
   useEffect(() => {
+    console.log('🔍 [AdminUsers] Auth state changed:', {
+      isFullyAuthorized: auth.isFullyAuthorized,
+      loading: auth.loading,
+      isMasterAdmin: auth.isMasterAdmin,
+      isAdmin: auth.isAdmin,
+      user: auth.user?.email
+    })
+    
     if (auth.isFullyAuthorized && !auth.loading && auth.isMasterAdmin) {
+      console.log('✅ [AdminUsers] Conditions met, loading users...')
       loadUsers()
+    } else {
+      console.log('⏳ [AdminUsers] Waiting for proper authorization...')
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [auth.isFullyAuthorized, auth.loading, auth.isMasterAdmin, loadUsers])
 
   // Filter users based on search and role
@@ -128,23 +137,11 @@ export default function RobustAdminUsersPage() {
 
       const email = newAdminEmail.trim().toLowerCase()
 
-      // First, check if user exists in auth.users
-      const { data: authUsers, error: authError } = await supabase
-        .from('users')
-        .select('user_id, email')
-        .eq('email', email)
-        .single()
-
-      if (authError || !authUsers) {
-        setError('User with this email not found. They must register first.')
-        return
-      }
-
-      // Check if user is already an admin
+      // Check if user is already an admin first
       const { data: existingAdmin } = await supabase
         .from('admin_users')
         .select('user_id')
-        .eq('user_id', authUsers.user_id)
+        .eq('email', email)
         .single()
 
       if (existingAdmin) {
@@ -152,11 +149,18 @@ export default function RobustAdminUsersPage() {
         return
       }
 
+      // For now, we'll create the admin record without checking auth.users
+      // The user_id will need to be updated when they first log in
+      // This is a simplified approach that assumes the email exists
+      
+      // Generate a temporary UUID for the user_id (this will be updated when they log in)
+      const tempUserId = crypto.randomUUID()
+
       // Add user as admin
       const { error: insertError } = await supabase
         .from('admin_users')
         .insert({
-          user_id: authUsers.user_id,
+          user_id: tempUserId, // Temporary - will be updated on first login
           email: email,
           role: 'admin',
           is_active: true
@@ -164,7 +168,8 @@ export default function RobustAdminUsersPage() {
 
       if (insertError) {
         console.error('❌ [AdminUsers] Error adding admin:', insertError)
-        throw insertError
+        setError(`Failed to add admin: ${insertError.message}`)
+        return
       }
 
       console.log('✅ [AdminUsers] Admin added successfully')
@@ -173,7 +178,7 @@ export default function RobustAdminUsersPage() {
       
     } catch (error) {
       console.error('❌ [AdminUsers] Unexpected error adding admin:', error)
-      setError('Failed to add admin user')
+      setError(`Failed to add admin user: ${error instanceof Error ? error.message : 'Unknown error'}`)
     } finally {
       setIsAddingAdmin(false)
     }
@@ -248,6 +253,12 @@ export default function RobustAdminUsersPage() {
       description="Manage users and admin privileges (Master Admin Only)"
       requireMasterAdmin={true}
     >
+      {/* Debug Panel */}
+      <AdminDebug />
+      
+      {/* Admin Users Specific Debug */}
+      <AdminUsersDebug />
+      
       {/* Error Alert */}
       {error && (
         <Alert className="mb-6 border-red-200 bg-red-50">
