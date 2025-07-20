@@ -7,7 +7,7 @@ import { useRobustAuth } from '@/hooks/useRobustAuth'
 import { Button } from '@/components/ui/button'
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet'
 import { Badge } from '@/components/ui/badge'
-import { Menu, Heart, LogOut, Shield, Package, FolderOpen, Loader2 } from 'lucide-react'
+import { Menu, Heart, LogOut, Shield, Package, FolderOpen, Loader2, RefreshCw, Users } from 'lucide-react'
 import ClientNavigation from './ClientNavigation'
 import AdminDropdown from './AdminDropdown'
 
@@ -145,52 +145,118 @@ export default function Navigation() {
 
                       {/* Enhanced Admin Section */}
                       {auth.isAdmin && (
-                    <div className="space-y-4 pt-2 border-t-2 border-amber-200">
-                      {/* Admin Header */}
-                      <div className="bg-gradient-to-r from-amber-50 to-amber-100 p-4 rounded-xl border border-amber-200 shadow-sm">
-                        <h3 className="text-lg font-bold text-amber-700 uppercase tracking-wide flex items-center gap-2">
-                          🛡️ Admin Panel
-                        </h3>
-                        <p className="text-sm text-amber-600 mt-1">Administrative Controls</p>
+                        <div className="space-y-4 pt-2 border-t-2 border-amber-200">
+                          {/* Admin Header */}
+                          <div className="bg-gradient-to-r from-amber-50 to-amber-100 p-4 rounded-xl border border-amber-200 shadow-sm">
+                            <div className="flex items-center justify-between mb-2">
+                              <h3 className="text-lg font-bold text-amber-700 uppercase tracking-wide flex items-center gap-2">
+                                🛡️ Admin Panel
+                              </h3>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={auth.refreshAuth}
+                                className="h-6 w-6 p-0 hover:bg-amber-200"
+                                title="Refresh admin status"
+                              >
+                                <RefreshCw className="w-3 h-3 text-amber-600" />
+                              </Button>
+                            </div>
+                            <div className="flex items-center justify-between">
+                              <p className="text-sm text-amber-600">
+                                {auth.isMasterAdmin ? 'Master Admin' : 'Admin Panel'}
+                              </p>
+                              {auth.sessionValid && (
+                                <Badge variant="outline" className="bg-green-50 text-green-700 border-green-300 text-xs">
+                                  ✓ Verified
+                                </Badge>
+                              )}
+                            </div>
+                            {auth.isMasterAdmin && (
+                              <Badge variant="outline" className="bg-purple-50 text-purple-700 border-purple-200 text-xs mt-2">
+                                Master Admin Access
+                              </Badge>
+                            )}
                           </div>
                           
                           {/* Primary Admin Dashboard Button */}
                           <Link 
                             href="/admin" 
-                            className="admin-mobile-primary"
+                            className="block p-3 bg-amber-600 hover:bg-amber-700 text-white rounded-lg transition-colors duration-200"
                             onClick={() => setIsOpen(false)}
                           >
                             <div className="flex items-center gap-3">
-                              <span>🛡️ Admin Dashboard</span>
+                              <Shield className="h-5 w-5" />
+                              <div className="flex flex-col">
+                                <span className="font-medium">Dashboard</span>
+                                <span className="text-xs text-amber-100">Overview & analytics</span>
+                              </div>
                             </div>
                           </Link>
                           
                           {/* Admin Management Options */}
                           <div className="space-y-3">
-                        <Link 
-                          href="/admin/users" 
-                          className="admin-mobile-secondary flex items-center gap-3"
-                          onClick={() => setIsOpen(false)}
-                        >
-                          <Shield className="h-5 w-5 text-amber-600" />
-                          <span>👥 Manage Admins</span>
-                        </Link>
-                        <Link 
-                          href="/admin/products" 
-                          className="admin-mobile-secondary flex items-center gap-3"
-                          onClick={() => setIsOpen(false)}
-                        >
-                          <Package className="h-5 w-5 text-amber-600" />
-                          <span>📦 Manage Products</span>
-                        </Link>
-                        <Link 
-                          href="/admin/categories" 
-                          className="admin-mobile-secondary flex items-center gap-3"
-                          onClick={() => setIsOpen(false)}
-                        >
-                          <FolderOpen className="h-5 w-5 text-amber-600" />
-                          <span>📂 Manage Categories</span>
-                        </Link>
+                            <Link 
+                              href="/admin/products" 
+                              className="block p-3 bg-white hover:bg-gray-50 border border-gray-200 rounded-lg transition-colors duration-200"
+                              onClick={() => setIsOpen(false)}
+                            >
+                              <div className="flex items-center gap-3">
+                                <Package className="h-5 w-5 text-purple-600" />
+                                <div className="flex flex-col">
+                                  <span className="font-medium text-gray-900">Products</span>
+                                  <span className="text-xs text-gray-500">Manage inventory</span>
+                                </div>
+                              </div>
+                            </Link>
+                            
+                            <Link 
+                              href="/admin/categories" 
+                              className="block p-3 bg-white hover:bg-gray-50 border border-gray-200 rounded-lg transition-colors duration-200"
+                              onClick={() => setIsOpen(false)}
+                            >
+                              <div className="flex items-center gap-3">
+                                <FolderOpen className="h-5 w-5 text-green-600" />
+                                <div className="flex flex-col">
+                                  <span className="font-medium text-gray-900">Categories</span>
+                                  <span className="text-xs text-gray-500">Organize products</span>
+                                </div>
+                              </div>
+                            </Link>
+                            
+                            {/* Master Admin Only */}
+                            {auth.isMasterAdmin && (
+                              <Link 
+                                href="/admin/users" 
+                                className="block p-3 bg-white hover:bg-gray-50 border border-gray-200 rounded-lg transition-colors duration-200"
+                                onClick={() => setIsOpen(false)}
+                              >
+                                <div className="flex items-center gap-3">
+                                  <Users className="h-5 w-5 text-blue-600" />
+                                  <div className="flex flex-col flex-1">
+                                    <span className="font-medium text-gray-900">User Management</span>
+                                    <span className="text-xs text-gray-500">Manage admin access</span>
+                                  </div>
+                                  <Badge variant="outline" className="bg-purple-50 text-purple-700 border-purple-200 text-xs">
+                                    Master
+                                  </Badge>
+                                </div>
+                              </Link>
+                            )}
+                          </div>
+                          
+                          {/* System Info */}
+                          <div className="bg-gray-50 p-3 rounded-lg text-xs text-gray-500">
+                            <div className="flex justify-between items-center">
+                              <span>Session Status</span>
+                              <span className="text-green-600">Active</span>
+                            </div>
+                            {auth.lastVerification > 0 && (
+                              <div className="flex justify-between items-center mt-1">
+                                <span>Last Check</span>
+                                <span>{new Date(auth.lastVerification).toLocaleTimeString()}</span>
+                              </div>
+                            )}
                           </div>
                         </div>
                       )}

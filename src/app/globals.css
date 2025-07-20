@@ -380,77 +380,10 @@ body {
     box-shadow: 0 6px 16px rgba(245, 158, 11, 0.3);
   }
 
-  .admin-mobile-primary {
-    background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
-    color: white;
-    font-weight: 700;
-    font-size: 1.125rem;
-    padding: 1rem 1.25rem;
-    border-radius: 0.75rem;
-    box-shadow: 0 6px 20px rgba(245, 158, 11, 0.3);
-    transition: all 0.2s ease-in-out;
-  }
 
-  .admin-mobile-primary:hover {
-    background: linear-gradient(135deg, #d97706 0%, #b45309 100%);
-    transform: scale(1.02);
-    box-shadow: 0 8px 24px rgba(245, 158, 11, 0.4);
-    color: white;
-  }
-
-  .admin-mobile-secondary {
-    border-left: 4px solid #f59e0b;
-    background: rgba(254, 243, 199, 0.3);
-    border-radius: 0.5rem;
-    padding: 0.875rem 1rem;
-    font-weight: 600;
-    transition: all 0.2s ease-in-out;
-  }
-
-  .admin-mobile-secondary:hover {
-    background: rgba(254, 243, 199, 0.6);
-    border-left-color: #d97706;
-    transform: translateX(3px);
-  }
 
   /* Enhanced mobile admin section styling */
   @media (max-width: 640px) {
-    /* Admin mobile buttons */
-    .admin-mobile-primary {
-      display: flex !important;
-      width: 100% !important;
-      padding: 1rem !important;
-      background: linear-gradient(135deg, #f59e0b 0%, #ea580c 100%) !important;
-      color: white !important;
-      border-radius: 0.75rem !important;
-      font-weight: 600 !important;
-      text-decoration: none !important;
-      box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1) !important;
-      transition: all 0.2s ease-in-out !important;
-    }
-    
-    .admin-mobile-primary:hover {
-      transform: translateY(-1px) !important;
-      box-shadow: 0 6px 10px -1px rgb(0 0 0 / 0.15) !important;
-    }
-    
-    .admin-mobile-secondary {
-      display: flex !important;
-      width: 100% !important;
-      padding: 0.75rem !important;
-      background: rgba(251, 191, 36, 0.1) !important;
-      color: #92400e !important;
-      border-radius: 0.5rem !important;
-      font-weight: 500 !important;
-      text-decoration: none !important;
-      border: 1px solid rgba(251, 191, 36, 0.2) !important;
-      transition: all 0.2s ease-in-out !important;
-    }
-    
-    .admin-mobile-secondary:hover {
-      background: rgba(251, 191, 36, 0.2) !important;
-      border-color: rgba(251, 191, 36, 0.3) !important;
-    }
     
     /* Admin panel header styling */
     .bg-gradient-to-r.from-amber-50.to-amber-100 {
@@ -950,14 +883,6 @@ body {
 
   /* Final mobile navigation improvements */
   @media (max-width: 640px) {
-    /* Ensure proper touch targets on mobile */
-    .admin-mobile-primary,
-    .admin-mobile-secondary {
-      min-height: 48px !important;
-      touch-action: manipulation !important;
-      -webkit-tap-highlight-color: transparent !important;
-    }
-    
     /* Main navigation links mobile styling */
     .block.text-base.font-medium {
       padding: 0.75rem 0 !important;
