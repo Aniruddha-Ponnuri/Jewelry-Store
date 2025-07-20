@@ -49,6 +49,18 @@ export default function RobustAdminUsersPage() {
       setError(null)
       console.log('👥 [AdminUsers] Loading users...')
 
+      // First, let's verify our own admin status
+      const { data: selfAdminCheck, error: adminCheckError } = await supabase.rpc('is_admin')
+      console.log('🔍 [AdminUsers] Self admin check:', { result: selfAdminCheck, error: adminCheckError?.message })
+
+      const { data: selfMasterCheck, error: masterCheckError } = await supabase.rpc('is_master_admin')
+      console.log('👑 [AdminUsers] Self master admin check:', { result: selfMasterCheck, error: masterCheckError?.message })
+
+      if (!selfAdminCheck || !selfMasterCheck) {
+        setError('You do not have sufficient permissions to view users. Please contact a master administrator.')
+        return
+      }
+
       // Get all admin users - simplified query without joins
       const { data, error } = await supabase
         .from('admin_users')
@@ -58,7 +70,7 @@ export default function RobustAdminUsersPage() {
 
       if (error) {
         console.error('❌ [AdminUsers] Error loading users:', error)
-        setError(`Failed to load users: ${error.message}`)
+        setError(`Failed to load users: ${error.message || 'Unknown database error'}. Please check your admin permissions.`)
         return
       }
 
@@ -79,7 +91,10 @@ export default function RobustAdminUsersPage() {
       console.log('✅ [AdminUsers] Users loaded:', transformedUsers.length)
     } catch (error) {
       console.error('❌ [AdminUsers] Unexpected error loading users:', error)
-      setError(`Failed to load users: ${error instanceof Error ? error.message : 'Unknown error'}`)
+      const errorMessage = error instanceof Error ? error.message : 
+                          typeof error === 'string' ? error : 
+                          'Unknown error occurred'
+      setError(`Failed to load users: ${errorMessage}`)
     } finally {
       setLoading(false)
     }
