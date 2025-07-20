@@ -11,6 +11,7 @@ interface AuthContextType {
   user: SupabaseUser | null
   userProfile: User | null
   isAdmin: boolean
+  isMasterAdmin: boolean
   loading: boolean
   signOut: () => Promise<void>
   refreshAdminStatus: () => Promise<void>
@@ -23,6 +24,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<SupabaseUser | null>(null)
   const [userProfile, setUserProfile] = useState<User | null>(null)
   const [isAdmin, setIsAdmin] = useState(false)
+  const [isMasterAdmin, setIsMasterAdmin] = useState(false)
   const [loading, setLoading] = useState(true)
   const [mounted, setMounted] = useState(false)
   const [adminChecked, setAdminChecked] = useState(false)
@@ -32,6 +34,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (!currentUser) {
       console.log('🔐 [AUTH] No user provided for admin check')
       setIsAdmin(false)
+      setIsMasterAdmin(false)
       setAdminChecked(true)
       clearAdminCache()
       return
@@ -67,26 +70,51 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           return
         }
         
-        setIsAdmin(false)
-        setAdminChecked(true)
-        clearAdminCache()
-        return
-      }
-      
-      // Use enhanced admin status check with caching
-      const adminStatus = await getAdminStatusWithCache(currentUser.id)
-      
-      console.log('🔐 [AUTH] Admin status result:', {
-        userId: currentUser.id,
-        email: currentUser.email,
-        isAdmin: adminStatus,
-        cached: 'from getAdminStatusWithCache'
-      })
-      
-      setIsAdmin(adminStatus)
+      setIsAdmin(false)
+      setIsMasterAdmin(false)
       setAdminChecked(true)
-
-      // Log additional validation
+      clearAdminCache()
+      return
+    }
+    
+    // Use enhanced admin status check with caching
+    const adminStatus = await getAdminStatusWithCache(currentUser.id)
+    
+    console.log('🔐 [AUTH] Admin status result:', {
+      userId: currentUser.id,
+      email: currentUser.email,
+      isAdmin: adminStatus,
+      cached: 'from getAdminStatusWithCache'
+    })
+    
+    setIsAdmin(adminStatus)
+    
+    // Check master admin status if user is admin
+    let masterAdminStatus = false
+    if (adminStatus) {
+      try {
+        const { data: masterCheck, error: masterError } = await supabase.rpc('is_master_admin')
+        
+        if (masterError) {
+          console.error('🚨 [AUTH] Master admin check error:', masterError.message)
+          masterAdminStatus = false
+        } else {
+          masterAdminStatus = Boolean(masterCheck)
+          console.log('👑 [AUTH] Master admin status:', {
+            userId: currentUser.id,
+            email: currentUser.email,
+            isMasterAdmin: masterAdminStatus,
+            rawResult: masterCheck
+          })
+        }
+      } catch (masterError) {
+        console.error('💥 [AUTH] Error checking master admin status:', masterError)
+        masterAdminStatus = false
+      }
+    }
+    
+    setIsMasterAdmin(masterAdminStatus)
+    setAdminChecked(true)      // Log additional validation
       if (adminStatus) {
         console.log('✅ [AUTH] User has admin privileges:', currentUser.email)
         
@@ -127,6 +155,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       
       console.error('💥 [AUTH] Max retries reached for admin check')
       setIsAdmin(false)
+      setIsMasterAdmin(false)
       setAdminChecked(true)
       clearAdminCache()
     }
@@ -135,6 +164,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     console.log('🔄 [AUTH] Refreshing admin status...')
     setAdminChecked(false)
     setIsAdmin(false)
+    setIsMasterAdmin(false)
     
     // Clear cached admin status to force fresh check
     clearAdminCache()
@@ -150,6 +180,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (sessionError || !session) {
           console.log('❌ [AUTH] No valid session during refresh:', sessionError?.message)
           setIsAdmin(false)
+          setIsMasterAdmin(false)
           setAdminChecked(true)
           return
         }
@@ -160,6 +191,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (error) {
           console.error('🚨 [AUTH] Error refreshing admin status:', error.message)
           setIsAdmin(false)
+          setIsMasterAdmin(false)
         } else {
           const adminStatus = Boolean(adminCheck)
           console.log('🔐 [AUTH] Refreshed admin status:', {
@@ -169,6 +201,32 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             rawResult: adminCheck
           })
           setIsAdmin(adminStatus)
+          
+          // Check master admin status if user is admin
+          let masterAdminStatus = false
+          if (adminStatus) {
+            try {
+              const { data: masterCheck, error: masterError } = await supabase.rpc('is_master_admin')
+              
+              if (masterError) {
+                console.error('🚨 [AUTH] Master admin refresh error:', masterError.message)
+                masterAdminStatus = false
+              } else {
+                masterAdminStatus = Boolean(masterCheck)
+                console.log('👑 [AUTH] Refreshed master admin status:', {
+                  userId: user.id,
+                  email: user.email,
+                  isMasterAdmin: masterAdminStatus,
+                  rawResult: masterCheck
+                })
+              }
+            } catch (masterError) {
+              console.error('💥 [AUTH] Error refreshing master admin status:', masterError)
+              masterAdminStatus = false
+            }
+          }
+          
+          setIsMasterAdmin(masterAdminStatus)
           
           // Update cache with fresh status
           if (typeof window !== 'undefined') {
@@ -215,6 +273,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       } catch (error) {
         console.error('💥 [AUTH] Error in refreshAdminStatus:', error)
         setIsAdmin(false)
+        setIsMasterAdmin(false)
         setAdminChecked(true)
       }
     } else {
@@ -282,6 +341,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           setUser(null)
           setUserProfile(null)
           setIsAdmin(false)
+          setIsMasterAdmin(false)
           setAdminChecked(true)
         }
       } catch (error) {
@@ -289,6 +349,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setUser(null)
         setUserProfile(null)
         setIsAdmin(false)
+        setIsMasterAdmin(false)
         setAdminChecked(true)
       } finally {
         setLoading(false)
@@ -312,6 +373,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             setUser(null)
             setUserProfile(null)
             setIsAdmin(false)
+            setIsMasterAdmin(false)
             setAdminChecked(true)
             // Clear cached admin status on sign out
             clearAdminCache()
@@ -343,6 +405,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             setUser(null)
             setUserProfile(null)
             setIsAdmin(false)
+            setIsMasterAdmin(false)
             setAdminChecked(true)
           }
         } catch (error) {
@@ -365,6 +428,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setUser(null)
       setUserProfile(null)
       setIsAdmin(false)
+      setIsMasterAdmin(false)
       setAdminChecked(true)
       
       // Clear cached admin status
@@ -414,6 +478,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       user, 
       userProfile, 
       isAdmin, 
+      isMasterAdmin,
       loading: !mounted || loading || (!!user && !adminChecked), 
       signOut, 
       refreshAdminStatus,

@@ -3,7 +3,6 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { useAuth } from '@/contexts/AuthContext'
-import { useRobustAuth } from '@/hooks/useRobustAuth'
 import { Button } from '@/components/ui/button'
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet'
 import { Badge } from '@/components/ui/badge'
@@ -12,25 +11,37 @@ import ClientNavigation from './ClientNavigation'
 import AdminDropdown from './AdminDropdown'
 
 export default function Navigation() {
-  const { user, signOut } = useAuth()
-  const auth = useRobustAuth({
-    requireAuth: false,
-    requireAdmin: false,
-    refreshInterval: 60000
-  })
+  const { user, isAdmin, isMasterAdmin, loading, signOut, refreshAdminStatus } = useAuth()
   const [isOpen, setIsOpen] = useState(false)
   const [isMobileLoggingOut, setIsMobileLoggingOut] = useState(false)
 
-  // Debug logging
-  console.log('🔍 [Navigation] Auth status:', {
-    user: user?.email,
-    isAuthenticated: auth.isAuthenticated,
-    isAdmin: auth.isAdmin,
-    isMasterAdmin: auth.isMasterAdmin,
-    loading: auth.loading,
-    error: auth.error,
-    sessionValid: auth.sessionValid
+  // Use AuthContext as primary source - it's more reliable
+  const isAuthenticated = !!user
+
+  // Enhanced debug logging
+  console.log('🧭 [NAVIGATION] Auth status:', {
+    timestamp: new Date().toISOString(),
+    user: user ? {
+      id: user.id,
+      email: user.email
+    } : null,
+    isAdmin,
+    isMasterAdmin,
+    loading,
+    userType: user ? (isMasterAdmin ? 'Master Admin' : isAdmin ? 'Admin' : 'Regular User') : 'Not Logged In'
   })
+
+  // Enhanced debug logging
+  console.log('🔍 [Navigation] Detailed Auth status:', {
+    user: user?.email,
+    isAuthenticated,
+    isAdmin,
+    loading,
+    userObject: user,
+    authSource: 'AuthContext-Primary',
+    timestamp: new Date().toISOString()
+  })
+
   const handleMobileSignOut = async () => {
     setIsMobileLoggingOut(true)
     try {
@@ -58,7 +69,8 @@ export default function Navigation() {
         <Link href="/bookmarks" className="text-sm font-medium hover:text-amber-600 transition-colors">
           Bookmarks
         </Link>
-      )}      {auth.isAdmin && (
+      )}
+      {isAdmin && (
         <Link 
           href="/admin" 
           className="admin-desktop-button flex items-center gap-2"
@@ -103,7 +115,7 @@ export default function Navigation() {
                 <div className="flex flex-col h-full">
                   <SheetHeader className="px-4 py-4 border-b border-gray-100 flex-shrink-0">
                     <SheetTitle className="text-left">Navigation Menu</SheetTitle>
-                    {user && auth.isAdmin && (
+                    {user && isAdmin && (
                       <div className="text-left">
                         <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200">
                           Admin Mode
@@ -144,18 +156,18 @@ export default function Navigation() {
                       </div>
 
                       {/* Enhanced Admin Section */}
-                      {auth.isAdmin && (
+                      {isAdmin && (
                         <div className="space-y-4 pt-2 border-t-2 border-amber-200">
                           {/* Admin Header */}
                           <div className="bg-gradient-to-r from-amber-50 to-amber-100 p-4 rounded-xl border border-amber-200 shadow-sm">
                             <div className="flex items-center justify-between mb-2">
                               <h3 className="text-lg font-bold text-amber-700 uppercase tracking-wide flex items-center gap-2">
-                                🛡️ Admin Panel
+                                🛡️ {isMasterAdmin ? 'Master Admin Panel' : 'Admin Panel'}
                               </h3>
                               <Button
                                 variant="ghost"
                                 size="sm"
-                                onClick={auth.refreshAuth}
+                                onClick={refreshAdminStatus}
                                 className="h-6 w-6 p-0 hover:bg-amber-200"
                                 title="Refresh admin status"
                               >
@@ -164,19 +176,12 @@ export default function Navigation() {
                             </div>
                             <div className="flex items-center justify-between">
                               <p className="text-sm text-amber-600">
-                                {auth.isMasterAdmin ? 'Master Admin' : 'Admin Panel'}
+                                {isMasterAdmin ? 'Master Administrator' : 'Administrator'}
                               </p>
-                              {auth.sessionValid && (
-                                <Badge variant="outline" className="bg-green-50 text-green-700 border-green-300 text-xs">
-                                  ✓ Verified
-                                </Badge>
-                              )}
-                            </div>
-                            {auth.isMasterAdmin && (
-                              <Badge variant="outline" className="bg-purple-50 text-purple-700 border-purple-200 text-xs mt-2">
-                                Master Admin Access
+                              <Badge variant="outline" className="bg-green-50 text-green-700 border-green-300 text-xs">
+                                ✓ Verified
                               </Badge>
-                            )}
+                            </div>
                           </div>
                           
                           {/* Primary Admin Dashboard Button */}
@@ -224,8 +229,8 @@ export default function Navigation() {
                               </div>
                             </Link>
                             
-                            {/* Master Admin Only */}
-                            {auth.isMasterAdmin && (
+                            {/* Admin Users Section - Master Admin Only */}
+                            {isMasterAdmin && (
                               <Link 
                                 href="/admin/users" 
                                 className="block p-3 bg-white hover:bg-gray-50 border border-gray-200 rounded-lg transition-colors duration-200"
@@ -251,12 +256,6 @@ export default function Navigation() {
                               <span>Session Status</span>
                               <span className="text-green-600">Active</span>
                             </div>
-                            {auth.lastVerification > 0 && (
-                              <div className="flex justify-between items-center mt-1">
-                                <span>Last Check</span>
-                                <span>{new Date(auth.lastVerification).toLocaleTimeString()}</span>
-                              </div>
-                            )}
                           </div>
                         </div>
                       )}
