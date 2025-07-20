@@ -1,7 +1,7 @@
 'use client'
 
 import { useAuth } from '@/contexts/AuthContext'
-import { useAdmin } from '@/hooks/useAdmin'
+import { useRobustAuth } from '@/hooks/useRobustAuth'
 import { Button } from '@/components/ui/button'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
@@ -11,7 +11,11 @@ import { useState } from 'react'
 
 export default function ClientNavigation() {
   const { user, signOut } = useAuth()
-  const { isAdmin } = useAdmin()
+  const auth = useRobustAuth({
+    requireAuth: false,
+    requireAdmin: false,
+    refreshInterval: 60000
+  })
   const [isLoggingOut, setIsLoggingOut] = useState(false)
 
   const handleSignOut = async () => {
@@ -55,10 +59,12 @@ export default function ClientNavigation() {
         <div className="p-3 border-b border-gray-100">
           <div className="flex flex-col space-y-1">
             <p className="font-medium text-sm text-gray-900 truncate">{user.email}</p>
-            {isAdmin && (
+            {auth.isAdmin && (
               <div className="flex items-center gap-1">
                 <Shield className="h-3 w-3 text-amber-600" />
-                <span className="text-xs text-amber-600 font-medium">Administrator</span>
+                <span className="text-xs text-amber-600 font-medium">
+                  {auth.isMasterAdmin ? 'Master Administrator' : 'Administrator'}
+                </span>
               </div>
             )}
           </div>
@@ -72,7 +78,7 @@ export default function ClientNavigation() {
             </Link>
           </DropdownMenuItem>
 
-          {isAdmin && (
+          {auth.isAdmin && (
             <>
               <div className="dropdown-separator-custom"></div>
               
@@ -80,7 +86,9 @@ export default function ClientNavigation() {
               <div className="admin-panel-header">
                 <div className="flex items-center gap-2">
                   <Shield className="h-4 w-4 text-amber-600" />
-                  <span className="text-sm font-semibold text-amber-700">Admin Panel</span>
+                  <span className="text-sm font-semibold text-amber-700">
+                    {auth.isMasterAdmin ? 'Master Admin Panel' : 'Admin Panel'}
+                  </span>
                 </div>
               </div>
                 {/* Admin Dashboard - Primary Action */}
@@ -104,12 +112,14 @@ export default function ClientNavigation() {
                   <span className="font-medium">📂 Manage Categories</span>
                 </Link>
               </DropdownMenuItem>
-              <DropdownMenuItem asChild>
-                <Link href="/admin/users" className="dropdown-item-custom admin-dropdown-secondary">
-                  <Shield className="mr-3 h-4 w-4 text-amber-600" />
-                  <span className="font-medium">👥 Manage Admins</span>
-                </Link>
-              </DropdownMenuItem>
+              {auth.isMasterAdmin && (
+                <DropdownMenuItem asChild>
+                  <Link href="/admin/users" className="dropdown-item-custom admin-dropdown-secondary">
+                    <Shield className="mr-3 h-4 w-4 text-amber-600" />
+                    <span className="font-medium">👥 Manage Users</span>
+                  </Link>
+                </DropdownMenuItem>
+              )}
             </>
           )}          <div className="dropdown-separator-custom"></div>
           <DropdownMenuItem onClick={handleSignOut} className="dropdown-item-custom text-red-600 hover:bg-red-50" disabled={isLoggingOut}>

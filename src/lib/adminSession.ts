@@ -23,7 +23,10 @@ export function getCachedAdminStatus(userId: string): boolean | null {
   
   try {
     const cached = sessionStorage.getItem(ADMIN_CACHE_KEY)
-    if (!cached) return null
+    if (!cached) {
+      console.log('📦 [CACHE] No admin cache found')
+      return null
+    }
     
     const adminCache: AdminSessionCache = JSON.parse(cached)
     
@@ -32,13 +35,25 @@ export function getCachedAdminStatus(userId: string): boolean | null {
     const isExpired = now - adminCache.timestamp > CACHE_DURATION
     const isWrongUser = adminCache.userId !== userId
     
+    console.log('📦 [CACHE] Admin cache check:', {
+      userId,
+      cachedUserId: adminCache.userId,
+      isExpired,
+      isWrongUser,
+      cacheAge: Math.round((now - adminCache.timestamp) / 1000) + 's',
+      cachedStatus: adminCache.isAdmin
+    })
+    
     if (isExpired || isWrongUser) {
+      console.log('📦 [CACHE] Admin cache invalid - removing')
       sessionStorage.removeItem(ADMIN_CACHE_KEY)
       return null
     }
     
+    console.log('📦 [CACHE] Admin cache valid - using cached status:', adminCache.isAdmin)
     return adminCache.isAdmin
-  } catch {
+  } catch (error) {
+    console.warn('📦 [CACHE] Error reading admin cache:', error)
     return null
   }
 }
@@ -57,9 +72,15 @@ export function cacheAdminStatus(userId: string, isAdmin: boolean, sessionId?: s
       sessionId
     }
     
+    console.log('📦 [CACHE] Caching admin status:', {
+      userId,
+      isAdmin,
+      sessionId: sessionId ? 'present' : 'missing'
+    })
+    
     sessionStorage.setItem(ADMIN_CACHE_KEY, JSON.stringify(adminCache))
-  } catch {
-    // Ignore storage errors
+  } catch (error) {
+    console.warn('📦 [CACHE] Error caching admin status:', error)
   }
 }
 
@@ -70,9 +91,10 @@ export function clearAdminCache(): void {
   if (typeof window === 'undefined') return
   
   try {
+    console.log('📦 [CACHE] Clearing admin cache')
     sessionStorage.removeItem(ADMIN_CACHE_KEY)
-  } catch {
-    // Ignore storage errors
+  } catch (error) {
+    console.warn('📦 [CACHE] Error clearing admin cache:', error)
   }
 }
 
@@ -81,35 +103,80 @@ export function clearAdminCache(): void {
  */
 export async function verifyAndCacheAdminStatus(userId: string): Promise<boolean> {
   try {
+    console.log('🔍 [VERIFY] Verifying admin status for user:', userId)
     const supabase = createClient()
     
-    // First verify we have a valid session
-    const { data: { session }, error: sessionError } = await supabase.auth.getSession()
+    // First verify we have a valid session with retries
+    let session = null
+    let sessionError = null
+    
+    for (let attempt = 0; attempt < 3; attempt++) {
+      const { data: { session: sessionData }, error: sessionErrorData } = await supabase.auth.getSession()
+      session = sessionData
+      sessionError = sessionErrorData
+      
+      if (!sessionError && session && session.user.id === userId) {
+        break
+      }
+      
+      if (attempt < 2) {
+        console.log(`🔄 [VERIFY] Session attempt ${attempt + 1} failed, retrying...`)
+        await new Promise(resolve => setTimeout(resolve, 1000))
+      }
+    }
     
     if (sessionError || !session || session.user.id !== userId) {
-      console.log('Invalid or missing session during admin verification')
+      console.log('❌ [VERIFY] Invalid or missing session after retries:', {
+        sessionError: sessionError?.message,
+        hasSession: !!session,
+        sessionUserId: session?.user?.id,
+        requestedUserId: userId
+      })
       clearAdminCache()
       return false
     }
     
-    // Check admin status with database
-    const { data: adminCheck, error } = await supabase.rpc('is_admin')
+    console.log('✅ [VERIFY] Valid session found, checking admin status...')
     
-    if (error) {
-      console.error('Error verifying admin status:', error)
+    // Check admin status with database with retries
+    let adminCheck = null
+    let adminError = null
+    
+    for (let attempt = 0; attempt < 3; attempt++) {
+      const { data: adminData, error: adminErrorData } = await supabase.rpc('is_admin')
+      adminCheck = adminData
+      adminError = adminErrorData
+      
+      if (!adminError) {
+        break
+      }
+      
+      if (attempt < 2) {
+        console.log(`🔄 [VERIFY] Admin check attempt ${attempt + 1} failed, retrying...`)
+        await new Promise(resolve => setTimeout(resolve, 1000))
+      }
+    }
+    
+    if (adminError) {
+      console.error('🚨 [VERIFY] Error verifying admin status after retries:', adminError.message)
       // Don't cache errors, but don't clear cache either in case it's temporary
       return false
     }
     
     const isAdmin = Boolean(adminCheck)
     
+    console.log('🔍 [VERIFY] Admin status verified:', {
+      userId,
+      isAdmin,
+      rawResult: adminCheck
+    })
+    
     // Always cache the result (even if false) to prevent unnecessary database calls
     cacheAdminStatus(userId, isAdmin, session.access_token)
     
-    console.log('Admin status verified and cached:', { userId, isAdmin })
     return isAdmin
   } catch (error) {
-    console.error('Error in verifyAndCacheAdminStatus:', error)
+    console.error('💥 [VERIFY] Error in verifyAndCacheAdminStatus:', error)
     return false
   }
 }

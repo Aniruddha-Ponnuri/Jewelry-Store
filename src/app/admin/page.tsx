@@ -1,16 +1,14 @@
 'use client'
 
 import { useState, useEffect, useMemo } from 'react'
-import { useRouter } from 'next/navigation'
-import { useAdmin } from '@/hooks/useAdmin'
-import { useAuth } from '@/contexts/AuthContext'
+import { useRobustAuth } from '@/hooks/useRobustAuth'
 import { createClient } from '@/lib/supabase/client'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Users, Package, FolderOpen, TrendingUp, Eye, ShoppingBag } from 'lucide-react'
 import Link from 'next/link'
-import AdminLayout from '@/components/AdminLayout'
+import RobustAdminLayout from '@/components/RobustAdminLayout'
 
 interface Product {
   product_id: string
@@ -31,10 +29,14 @@ interface DashboardStats {
   outOfStockProducts: number
 }
 
-export default function AdminDashboard() {
-  const { isAdmin, loading: authLoading } = useAdmin()
-  const { user } = useAuth()
-  const router = useRouter()
+export default function RobustAdminDashboard() {
+  const auth = useRobustAuth({
+    requireAuth: true,
+    requireAdmin: true,
+    redirectOnFail: '/',
+    refreshInterval: 60000
+  })
+  
   const [stats, setStats] = useState<DashboardStats>({
     totalUsers: 0,
     totalProducts: 0,
@@ -44,25 +46,14 @@ export default function AdminDashboard() {
     outOfStockProducts: 0
   })
   const [loading, setLoading] = useState(true)
-  const [mounted, setMounted] = useState(false)
   const supabase = useMemo(() => createClient(), [])
-
-  // Prevent hydration issues by only rendering client-side
-  useEffect(() => {
-    setMounted(true)
-  }, [])
-
-  // Redirect if not admin
-  useEffect(() => {
-    if (!authLoading && !isAdmin) {
-      router.push('/')
-    }
-  }, [isAdmin, authLoading, router])
 
   // Load dashboard statistics
   useEffect(() => {
     const loadStats = async () => {
-      if (!isAdmin || !mounted) return
+      if (!auth.isFullyAuthorized || auth.loading) {
+        return
+      }
 
       try {
         setLoading(true)
@@ -87,14 +78,16 @@ export default function AdminDashboard() {
         const inStock = stockData.filter(p => p.is_in_stock).length
         const outOfStock = stockData.filter(p => !p.is_in_stock).length
 
-        setStats({
+        const newStats = {
           totalUsers: usersResult.count || 0,
           totalProducts: productsResult.count || 0,
           totalCategories: categoriesResult.count || 0,
           recentProducts: recentProductsResult.data || [],
           inStockProducts: inStock,
           outOfStockProducts: outOfStock
-        })
+        }
+
+        setStats(newStats)
       } catch (error) {
         console.error('Error loading dashboard stats:', error)
       } finally {
@@ -103,56 +96,19 @@ export default function AdminDashboard() {
     }
 
     loadStats()
-  }, [isAdmin, mounted, supabase])
-
-  // Early return for SSR to prevent hydration issues
-  if (!mounted) {
-    return (
-      <div className="flex justify-center items-center min-h-screen">
-        <div className="text-center space-y-4">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-4 border-amber-600 mx-auto"></div>
-          <p className="text-lg font-medium text-gray-700">Loading...</p>
-        </div>
-      </div>
-    )
-  }
-
-  if (authLoading) {
-    return (
-      <div className="flex justify-center items-center min-h-screen">
-        <div className="text-center space-y-4">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-4 border-amber-600 mx-auto"></div>
-          <p className="text-lg font-medium text-gray-700">Loading Admin Dashboard...</p>
-        </div>
-      </div>
-    )
-  }
-
-  if (!isAdmin) {
-    return (
-      <div className="flex justify-center items-center min-h-screen">
-        <div className="text-center space-y-4">
-          <div className="text-red-600 text-xl">Access Denied</div>
-          <p className="text-gray-600">You don&apos;t have permission to access this page.</p>
-          <Link href="/" className="text-blue-600 hover:underline">Return to Home</Link>
-        </div>
-      </div>
-    )
-  }
+  }, [auth.isFullyAuthorized, auth.loading, supabase])
 
   const formatCurrency = (amount: number) => {
-    // Simple formatting to avoid hydration issues
     return `₹${amount.toLocaleString('en-IN')}`
   }
   
   const formatDate = (dateString: string) => {
-    // Simple date formatting to avoid hydration issues
     const date = new Date(dateString)
     return date.toLocaleDateString('en-IN')
   }
 
   return (
-    <AdminLayout 
+    <RobustAdminLayout 
       title="Admin Dashboard" 
       description="Welcome to the SilverPalace Admin Dashboard"
     >
@@ -161,7 +117,7 @@ export default function AdminDashboard() {
         <CardHeader>
           <CardTitle className="text-amber-800 flex items-center gap-2">
             <Eye className="w-5 h-5" />
-            Welcome back, {user?.email?.split('@')[0]}!
+            Welcome back, {auth.user?.email?.split('@')[0]}!
           </CardTitle>
           <CardDescription className="text-amber-700">
             Manage your jewelry store from this central dashboard. Monitor sales, inventory, and user activities.
@@ -170,7 +126,8 @@ export default function AdminDashboard() {
       </Card>
 
       {/* Statistics Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">        <Card className="hover:shadow-lg transition-shadow duration-200 border-l-4 border-l-blue-500">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+        <Card className="hover:shadow-lg transition-shadow duration-200 border-l-4 border-l-blue-500">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Users</CardTitle>
             <Users className="h-4 w-4 text-blue-500" />
@@ -200,17 +157,17 @@ export default function AdminDashboard() {
                 stats.totalProducts
               )}
             </div>
-            <p className="text-xs text-muted-foreground">Available items</p>
+            <p className="text-xs text-muted-foreground">Available products</p>
           </CardContent>
         </Card>
 
-        <Card className="hover:shadow-lg transition-shadow duration-200 border-l-4 border-l-amber-500">
+        <Card className="hover:shadow-lg transition-shadow duration-200 border-l-4 border-l-green-500">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Categories</CardTitle>
-            <FolderOpen className="h-4 w-4 text-amber-500" />
+            <FolderOpen className="h-4 w-4 text-green-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-amber-600">
+            <div className="text-2xl font-bold text-green-600">
               {loading ? (
                 <div className="animate-pulse bg-gray-200 h-8 w-16 rounded"></div>
               ) : (
@@ -219,67 +176,77 @@ export default function AdminDashboard() {
             </div>
             <p className="text-xs text-muted-foreground">Product categories</p>
           </CardContent>
-        </Card>        <Card className="hover:shadow-lg transition-shadow duration-200 border-l-4 border-l-green-500">
+        </Card>
+
+        <Card className="hover:shadow-lg transition-shadow duration-200 border-l-4 border-l-amber-500">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">In Stock</CardTitle>
-            <TrendingUp className="h-4 w-4 text-green-500" />
+            <CardTitle className="text-sm font-medium">Stock Status</CardTitle>
+            <ShoppingBag className="h-4 w-4 text-amber-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-green-600">
-              {loading ? (
-                <div className="animate-pulse bg-gray-200 h-8 w-16 rounded"></div>
-              ) : (
-                stats.inStockProducts
-              )}
+            <div className="flex items-center gap-2">
+              <div className="text-lg font-bold text-green-600">
+                {loading ? (
+                  <div className="animate-pulse bg-gray-200 h-6 w-8 rounded"></div>
+                ) : (
+                  stats.inStockProducts
+                )}
+              </div>
+              <span className="text-xs text-gray-500">/</span>
+              <div className="text-lg font-bold text-red-600">
+                {loading ? (
+                  <div className="animate-pulse bg-gray-200 h-6 w-8 rounded"></div>
+                ) : (
+                  stats.outOfStockProducts
+                )}
+              </div>
             </div>
-            <p className="text-xs text-muted-foreground">
-              {stats.outOfStockProducts > 0 && (
-                <span className="text-red-600">{stats.outOfStockProducts} out of stock</span>
-              )}
-              {stats.outOfStockProducts === 0 && "All products available"}
-            </p>
+            <p className="text-xs text-muted-foreground">In stock / Out of stock</p>
           </CardContent>
         </Card>
       </div>
 
-      {/* Quick Actions and Recent Products */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
-        {/* Quick Actions */}
-        <Card className="lg:col-span-1">
-          <CardHeader>
+      {/* Quick Actions */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
+        <Card className="hover:shadow-lg transition-shadow duration-200">
+          <CardHeader className="pb-3">
             <CardTitle className="text-lg flex items-center gap-2">
-              <ShoppingBag className="w-5 h-5" />
+              <Package className="w-5 h-5 text-purple-600" />
               Quick Actions
             </CardTitle>
-            <CardDescription>Common admin tasks</CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
-            <Link href="/admin/products">
+            <Link href="/admin/products" className="block">
               <Button className="w-full justify-start" variant="outline">
-                <Package className="mr-2 h-4 w-4" />
+                <Package className="w-4 h-4 mr-2" />
                 Manage Products
               </Button>
             </Link>
-            <Link href="/admin/categories">
+            <Link href="/admin/categories" className="block">
               <Button className="w-full justify-start" variant="outline">
-                <FolderOpen className="mr-2 h-4 w-4" />
+                <FolderOpen className="w-4 h-4 mr-2" />
                 Manage Categories
               </Button>
             </Link>
-            <Link href="/admin/users">
-              <Button className="w-full justify-start" variant="outline">
-                <Users className="mr-2 h-4 w-4" />
-                Manage Admins
-              </Button>
-            </Link>
+            {auth.isMasterAdmin && (
+              <Link href="/admin/users" className="block">
+                <Button className="w-full justify-start" variant="outline">
+                  <Users className="w-4 h-4 mr-2" />
+                  Manage Users
+                </Button>
+              </Link>
+            )}
           </CardContent>
         </Card>
 
         {/* Recent Products */}
-        <Card className="lg:col-span-2">
-          <CardHeader>
-            <CardTitle className="text-lg">Recent Products</CardTitle>
-            <CardDescription>Latest additions to your inventory</CardDescription>
+        <Card className="md:col-span-2 hover:shadow-lg transition-shadow duration-200">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-lg flex items-center gap-2">
+              <TrendingUp className="w-5 h-5 text-green-600" />
+              Recent Products
+            </CardTitle>
+            <CardDescription>Latest products added to your store</CardDescription>
           </CardHeader>
           <CardContent>
             {loading ? (
@@ -292,11 +259,11 @@ export default function AdminDashboard() {
                 ))}
               </div>
             ) : stats.recentProducts.length === 0 ? (
-              <div className="text-center py-6 text-gray-500">
-                <Package className="mx-auto h-12 w-12 text-gray-300 mb-2" />
-                <p>No products yet</p>
+              <div className="text-center py-8 text-gray-500">
+                <Package className="w-12 h-12 mx-auto mb-3 text-gray-300" />
+                <p className="text-sm mb-3">No products found</p>
                 <Link href="/admin/products">
-                  <Button className="mt-2" size="sm">
+                  <Button size="sm">
                     Add Your First Product
                   </Button>
                 </Link>
@@ -347,16 +314,18 @@ export default function AdminDashboard() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-blue-800">
             <div>
               <p><strong>Website:</strong> SilverPalace Jewelry Store</p>
-              <p><strong>Admin Email:</strong> {user?.email}</p>
+              <p><strong>Admin Email:</strong> {auth.user?.email}</p>
+              <p><strong>Admin Level:</strong> {auth.isMasterAdmin ? 'Master Admin' : 'Admin'}</p>
             </div>
             <div>
               <p><strong>Session:</strong> Active</p>
               <p><strong>Status:</strong> Online</p>
-              <p><strong>Version:</strong> 1.0.0</p>
+              <p><strong>Version:</strong> 2.0.0 (Robust Auth)</p>
+              <p><strong>Last Verification:</strong> {auth.lastVerification > 0 ? new Date(auth.lastVerification).toLocaleTimeString() : 'Never'}</p>
             </div>
           </div>
         </CardContent>
       </Card>
-    </AdminLayout>
+    </RobustAdminLayout>
   )
 }

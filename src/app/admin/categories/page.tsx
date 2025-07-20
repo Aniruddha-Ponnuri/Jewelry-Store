@@ -1,18 +1,18 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
-import { useAdmin } from '@/hooks/useAdmin'
-import { useAuth } from '@/contexts/AuthContext'
+import { useRobustAuth } from '@/hooks/useRobustAuth'
 import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Textarea } from '@/components/ui/textarea'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
-import { Plus, Edit, Trash2 } from 'lucide-react'
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog'
 import { Alert, AlertDescription } from '@/components/ui/alert'
-import { Textarea } from '@/components/ui/textarea'
-import AdminLayout from '@/components/AdminLayout'
+import { Plus, Edit, Trash2, FolderOpen } from 'lucide-react'
+import RobustAdminLayout from '@/components/RobustAdminLayout'
 
 interface Category {
   category_id: string
@@ -23,137 +23,162 @@ interface Category {
 }
 
 export default function AdminCategories() {
-  const { isAdmin, loading: authLoading } = useAdmin()
-  const { refreshAdminStatus } = useAuth()
+  const auth = useRobustAuth({
+    requireAuth: true,
+    requireAdmin: true,
+    redirectOnFail: '/',
+    refreshInterval: 60000
+  })
+  
   const [categories, setCategories] = useState<Category[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [editingCategory, setEditingCategory] = useState<Category | null>(null)
   const [isDialogOpen, setIsDialogOpen] = useState(false)
+  const [deleting, setDeleting] = useState<Set<string>>(new Set())
+  
   const supabase = createClient()
 
-  // Category form state
+  // Form state
   const [formData, setFormData] = useState({
     name: '',
     description: '',
     emoji: ''
   })
 
-  // Check admin status from database instead of environment variable
-
-  // Redirect if not admin
-  useEffect(() => {
-    if (!authLoading && !isAdmin) {
-      window.location.href = '/'
+  // Load categories
+  const loadCategories = useCallback(async () => {
+    if (!auth.isFullyAuthorized || auth.loading) {
+      console.log('🔒 [AdminCategories] Waiting for auth verification before loading categories')
+      return
     }
-  }, [isAdmin, authLoading])
-  const fetchCategories = useCallback(async () => {
-    const { data, error } = await supabase
-      .from('categories')
-      .select('*')
-      .order('created_at', { ascending: false })
-
-    if (error) {
-      setError(error.message)
-    } else {
-      setCategories(data || [])
-    }
-    setLoading(false)
-  }, [supabase])
-  useEffect(() => {
-    if (isAdmin) {
-      fetchCategories()
-    }
-  }, [isAdmin, fetchCategories])
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setLoading(true)
 
     try {
+      setLoading(true)
+      setError(null)
+      console.log('📂 [AdminCategories] Loading categories...')
+
+      const { data, error } = await supabase
+        .from('categories')
+        .select('*')
+        .order('created_at', { ascending: false })
+
+      if (error) {
+        console.error('❌ [AdminCategories] Error loading categories:', error)
+        setError('Failed to load categories')
+        return
+      }
+
+      setCategories(data || [])
+      console.log('✅ [AdminCategories] Categories loaded:', data?.length || 0)
+    } catch (error) {
+      console.error('❌ [AdminCategories] Unexpected error loading categories:', error)
+      setError('Failed to load categories')
+    } finally {
+      setLoading(false)
+    }
+  }, [auth.isFullyAuthorized, auth.loading, supabase])
+
+  // Load data when auth is ready
+  useEffect(() => {
+    if (auth.isFullyAuthorized && !auth.loading) {
+      loadCategories()
+    }
+  }, [auth.isFullyAuthorized, auth.loading, loadCategories])
+
+  // Handle form submission
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    
+    if (!auth.isFullyAuthorized) {
+      console.error('❌ [AdminCategories] Not authorized for category operations')
+      setError('Not authorized to perform this action')
+      return
+    }
+
+    try {
+      setError(null)
+      console.log('💾 [AdminCategories] Submitting category form...')
+
       const categoryData = {
-        name: formData.name.toLowerCase(),
-        description: formData.description || null,
-        emoji: formData.emoji || null,
-        is_active: true,
-        sort_order: categories.length + 1
+        name: formData.name.trim(),
+        description: formData.description.trim() || null,
+        emoji: formData.emoji.trim() || null
       }
 
       let result
       if (editingCategory) {
+        console.log('✏️ [AdminCategories] Updating category:', editingCategory.category_id)
         result = await supabase
           .from('categories')
           .update(categoryData)
           .eq('category_id', editingCategory.category_id)
+          .select()
       } else {
+        console.log('➕ [AdminCategories] Creating new category')
         result = await supabase
           .from('categories')
           .insert([categoryData])
+          .select()
       }
 
       if (result.error) {
-        setError(result.error.message)
-      } else {
-        setIsDialogOpen(false)
-        resetForm()
-        fetchCategories()
-        
-        // Force cache revalidation for the home page
-        try {
-          await fetch('/api/revalidate', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ path: '/' })
-          })
-        } catch (revalidateError) {
-          console.warn('Cache revalidation failed:', revalidateError)
-        }
-        
-        // Refresh admin status to prevent losing privileges
-        setTimeout(() => {
-          refreshAdminStatus()
-        }, 500)
+        console.error('❌ [AdminCategories] Database error:', result.error)
+        throw result.error
       }
+
+      console.log('✅ [AdminCategories] Category saved successfully')
+      
+      // Reset form and refresh data
+      resetForm()
+      setIsDialogOpen(false)
+      await loadCategories()
+      
     } catch (error) {
-      setError(error instanceof Error ? error.message : 'An error occurred')
-    } finally {
-      setLoading(false)
+      console.error('❌ [AdminCategories] Unexpected error saving category:', error)
+      setError('Failed to save category')
     }
   }
 
-  const deleteCategory = async (categoryId: string) => {
-    if (window.confirm('Are you sure you want to delete this category? This will affect all products in this category.')) {
-      try {
-        const { error } = await supabase
-          .from('categories')
-          .delete()
-          .eq('category_id', categoryId)
+  // Handle deletion
+  const handleDelete = async (categoryId: string) => {
+    if (!auth.isFullyAuthorized) {
+      console.error('❌ [AdminCategories] Not authorized for deletion')
+      setError('Not authorized to perform this action')
+      return
+    }
 
-        if (error) throw error
-        
-        fetchCategories()
-        
-        // Force cache revalidation for the home page
-        try {
-          await fetch('/api/revalidate', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ path: '/' })
-          })
-        } catch (revalidateError) {
-          console.warn('Cache revalidation failed:', revalidateError)
-        }
-        
-        // Refresh admin status to prevent losing privileges
-        setTimeout(() => {
-          refreshAdminStatus()
-        }, 500)
-      } catch (error) {
-        setError(error instanceof Error ? error.message : 'Deletion failed')
+    try {
+      setDeleting(prev => new Set(prev).add(categoryId))
+      setError(null)
+      console.log('🗑️ [AdminCategories] Deleting category:', categoryId)
+
+      const { error } = await supabase
+        .from('categories')
+        .delete()
+        .eq('category_id', categoryId)
+
+      if (error) {
+        console.error('❌ [AdminCategories] Delete error:', error)
+        throw error
       }
+
+      console.log('✅ [AdminCategories] Category deleted successfully')
+      await loadCategories()
+      
+    } catch (error) {
+      console.error('❌ [AdminCategories] Unexpected error deleting category:', error)
+      setError('Failed to delete category')
+    } finally {
+      setDeleting(prev => {
+        const newSet = new Set(prev)
+        newSet.delete(categoryId)
+        return newSet
+      })
     }
   }
 
+  // Reset form
   const resetForm = () => {
     setFormData({
       name: '',
@@ -163,7 +188,8 @@ export default function AdminCategories() {
     setEditingCategory(null)
   }
 
-  const openEditDialog = (category: Category) => {
+  // Edit category
+  const handleEdit = (category: Category) => {
     setEditingCategory(category)
     setFormData({
       name: category.name,
@@ -172,81 +198,104 @@ export default function AdminCategories() {
     })
     setIsDialogOpen(true)
   }
-  if (authLoading || loading) {
-    return <div className="flex items-center justify-center min-h-screen">Loading...</div>
-  }
-
-  if (!isAdmin) {
-    return <div className="flex items-center justify-center min-h-screen">Access Denied</div>
-  }
 
   return (
-    <AdminLayout 
+    <RobustAdminLayout 
       title="Category Management" 
-      description="Manage product categories"
+      description="Organize your jewelry products with categories"
     >
-      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start mb-4 sm:mb-6 lg:mb-8 gap-3 sm:gap-4"><Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+      {/* Error Alert */}
+      {error && (
+        <Alert className="mb-6 border-red-200 bg-red-50">
+          <AlertDescription className="text-red-800">
+            {error}
+            <Button 
+              variant="link" 
+              onClick={() => setError(null)}
+              className="ml-2 text-red-600 p-0 h-auto"
+            >
+              Dismiss
+            </Button>
+          </AlertDescription>
+        </Alert>
+      )}
+
+      {/* Header with Add Button */}
+      <div className="flex justify-between items-center mb-6">
+        <div>
+          <h2 className="text-2xl font-bold text-gray-900">Categories</h2>
+          <p className="text-gray-600">Organize your jewelry collection</p>
+        </div>
+        
+        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogTrigger asChild>
-            <Button onClick={resetForm} className="w-full sm:w-auto" size="sm">
+            <Button 
+              onClick={resetForm}
+              className="bg-amber-600 hover:bg-amber-700 text-white"
+            >
               <Plus className="w-4 h-4 mr-2" />
               Add Category
             </Button>
-          </DialogTrigger>          <DialogContent className="w-[95vw] sm:max-w-[500px] mx-auto bg-white border shadow-lg">
+          </DialogTrigger>
+          
+          <DialogContent className="max-w-lg">
             <DialogHeader>
-              <DialogTitle className="text-base sm:text-lg">
+              <DialogTitle>
                 {editingCategory ? 'Edit Category' : 'Add New Category'}
               </DialogTitle>
-              <DialogDescription className="text-sm">
-                {editingCategory ? 'Update the category information below.' : 'Fill in the category details below.'}
+              <DialogDescription>
+                {editingCategory ? 'Update category information' : 'Create a new product category'}
               </DialogDescription>
             </DialogHeader>
-            <form onSubmit={handleSubmit} className="space-y-3 sm:space-y-4">
+            
+            <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="name" className="text-sm">Category Name</Label>
+                <Label htmlFor="name">Category Name *</Label>
                 <Input
                   id="name"
                   value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  placeholder="e.g., rings, necklaces, earrings"
+                  onChange={(e) => setFormData({...formData, name: e.target.value})}
+                  placeholder="e.g., Rings, Necklaces, Earrings"
                   required
-                  className="text-sm"
                 />
               </div>
               
               <div className="space-y-2">
-                <Label htmlFor="emoji" className="text-sm">Emoji (Optional)</Label>
+                <Label htmlFor="emoji">Emoji</Label>
                 <Input
                   id="emoji"
                   value={formData.emoji}
-                  onChange={(e) => setFormData({ ...formData, emoji: e.target.value })}
-                  placeholder="💍"
+                  onChange={(e) => setFormData({...formData, emoji: e.target.value})}
+                  placeholder="💍 (optional)"
                   maxLength={2}
-                  className="text-sm"
                 />
               </div>
-
+              
               <div className="space-y-2">
-                <Label htmlFor="description" className="text-sm">Description (Optional)</Label>
+                <Label htmlFor="description">Description</Label>
                 <Textarea
                   id="description"
                   value={formData.description}
-                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                  placeholder="Brief description of this category"
+                  onChange={(e) => setFormData({...formData, description: e.target.value})}
+                  placeholder="Brief description of this category..."
                   rows={3}
-                  className="text-sm"
                 />
-              </div>              {error && (
-                <Alert variant="destructive">
-                  <AlertDescription className="text-sm">{error}</AlertDescription>
-                </Alert>
-              )}
-
-              <div className="flex flex-col-reverse sm:flex-row gap-2 sm:justify-end">
-                <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)} className="w-full sm:w-auto">
+              </div>
+              
+              <div className="flex justify-end gap-3 pt-4">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setIsDialogOpen(false)}
+                >
                   Cancel
                 </Button>
-                <Button type="submit" disabled={loading} className="w-full sm:w-auto">
-                  {loading ? 'Saving...' : editingCategory ? 'Update' : 'Create'}
+                <Button
+                  type="submit"
+                  disabled={!formData.name}
+                  className="bg-amber-600 hover:bg-amber-700"
+                >
+                  {editingCategory ? 'Update Category' : 'Create Category'}
                 </Button>
               </div>
             </form>
@@ -254,49 +303,116 @@ export default function AdminCategories() {
         </Dialog>
       </div>
 
-      <div className="grid gap-3 sm:gap-4 lg:gap-6">
-        {categories.map((category) => (
-          <Card key={category.category_id}>
-            <CardHeader className="pb-3 sm:pb-4">
-              <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-3 sm:gap-4">
-                <div className="flex items-center gap-3 flex-1 min-w-0">
-                  <div className="text-xl sm:text-2xl flex-shrink-0">{category.emoji || '📂'}</div>
-                  <div className="min-w-0 flex-1">
-                    <CardTitle className="capitalize text-base sm:text-lg truncate">{category.name}</CardTitle>
-                    <CardDescription className="text-xs sm:text-sm line-clamp-2">{category.description || 'No description'}</CardDescription>
-                  </div>
+      {/* Categories Grid */}
+      {loading ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {[1, 2, 3].map((i) => (
+            <Card key={i} className="animate-pulse">
+              <CardHeader>
+                <div className="h-4 bg-gray-200 rounded w-3/4"></div>
+                <div className="h-3 bg-gray-200 rounded w-1/2"></div>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-2">
+                  <div className="h-3 bg-gray-200 rounded w-full"></div>
+                  <div className="h-3 bg-gray-200 rounded w-2/3"></div>
                 </div>
-                <div className="flex gap-2 sm:flex-col lg:flex-row">
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      ) : categories.length === 0 ? (
+        <Card className="text-center py-12">
+          <CardContent>
+            <div className="text-gray-500 mb-4">
+              <FolderOpen className="w-16 h-16 mx-auto mb-4 text-gray-300" />
+              <h3 className="text-lg font-semibold mb-2">No Categories Found</h3>
+              <p className="text-sm">Start by creating your first product category.</p>
+            </div>
+            <Button 
+              onClick={() => {
+                resetForm()
+                setIsDialogOpen(true)
+              }}
+              className="bg-amber-600 hover:bg-amber-700"
+            >
+              <Plus className="w-4 h-4 mr-2" />
+              Create Your First Category
+            </Button>
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {categories.map((category) => (
+            <Card key={category.category_id} className="hover:shadow-lg transition-shadow duration-200">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  {category.emoji && <span className="text-2xl">{category.emoji}</span>}
+                  <span className="capitalize">{category.name}</span>
+                </CardTitle>
+                <CardDescription>
+                  {category.description || 'No description available'}
+                </CardDescription>
+              </CardHeader>
+              
+              <CardContent>
+                <div className="flex gap-2">
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => openEditDialog(category)}
-                    className="flex-1 sm:flex-initial text-xs"
+                    onClick={() => handleEdit(category)}
+                    className="flex-1"
                   >
-                    <Edit className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-0 lg:mr-1" />
-                    <span className="sm:hidden lg:inline">Edit</span>
-                  </Button>                  <Button
-                    variant="destructive"
-                    size="sm"
-                    onClick={() => deleteCategory(category.category_id)}
-                    className="flex-1 sm:flex-initial text-xs admin-delete-button"
-                  >
-                    <Trash2 className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-0 lg:mr-1" />
-                    <span className="sm:hidden lg:inline">Delete</span>
+                    <Edit className="w-4 h-4 mr-2" />
+                    Edit
                   </Button>
+                  
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        disabled={deleting.has(category.category_id)}
+                        className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                      >
+                        {deleting.has(category.category_id) ? (
+                          'Deleting...'
+                        ) : (
+                          <>
+                            <Trash2 className="w-4 h-4 mr-2" />
+                            Delete
+                          </>
+                        )}
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Delete Category</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          Are you sure you want to delete &quot;{category.name}&quot;? This action cannot be undone.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction
+                          onClick={() => handleDelete(category.category_id)}
+                          className="bg-red-600 hover:bg-red-700"
+                        >
+                          Delete Category
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
                 </div>
-              </div>
-            </CardHeader>
-          </Card>
-        ))}
-
-        {categories.length === 0 && (          <Card>
-            <CardContent className="text-center py-6 sm:py-8">
-              <p className="text-muted-foreground text-sm sm:text-base">No categories yet. Add your first category to get started.</p>
-            </CardContent>
-          </Card>
-        )}
-      </div>
-    </AdminLayout>
+                
+                <div className="mt-3 text-xs text-gray-500">
+                  Created: {new Date(category.created_at).toLocaleDateString()}
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
+    </RobustAdminLayout>
   )
 }

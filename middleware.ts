@@ -59,30 +59,59 @@ export async function middleware(request: NextRequest) {
     if (request.nextUrl.pathname.startsWith('/admin')) {
       if (!currentUser) {
         console.log('Middleware: No user for admin route, redirecting to login')
-        return NextResponse.redirect(new URL('/login', request.url))
+        const loginUrl = new URL('/login', request.url)
+        loginUrl.searchParams.set('redirect', request.nextUrl.pathname)
+        return NextResponse.redirect(loginUrl)
       }
 
-      // Check if user is admin with enhanced error handling
+      // Check if user is admin with enhanced error handling and retries
       try {
-        const { data: isAdminData, error: adminError } = await supabase.rpc('is_admin')
+        let isAdminData = null
+        let adminError = null
+        
+        // Try admin check with retries
+        for (let attempt = 0; attempt < 2; attempt++) {
+          const { data, error } = await supabase.rpc('is_admin')
+          isAdminData = data
+          adminError = error
+          
+          if (!error) {
+            break
+          }
+          
+          if (attempt < 1) {
+            console.log('Middleware: Admin check failed, retrying...')
+            await new Promise(resolve => setTimeout(resolve, 500))
+          }
+        }
         
         if (adminError) {
           console.error('Middleware: Error checking admin status:', adminError)
           // For admin routes, be more strict with errors
-          if (adminError.message?.includes('permission') || adminError.message?.includes('not authenticated')) {
+          if (adminError.message?.includes('permission') || 
+              adminError.message?.includes('not authenticated') ||
+              adminError.message?.includes('JWT') ||
+              adminError.message?.includes('session')) {
             console.log('Middleware: Authentication error, redirecting to login')
-            return NextResponse.redirect(new URL('/login', request.url))
+            const loginUrl = new URL('/login', request.url)
+            loginUrl.searchParams.set('redirect', request.nextUrl.pathname)
+            return NextResponse.redirect(loginUrl)
           }
-          // For other errors, let the app handle it
+          // For other errors, allow access but log warning
+          console.warn('Middleware: Non-critical admin check error, allowing access')
         } else if (!isAdminData) {
           console.log('Middleware: User is not admin, redirecting to home')
           return NextResponse.redirect(new URL('/', request.url))
         } else {
-          console.log('Middleware: Admin access confirmed')
+          console.log('Middleware: Admin access confirmed for user:', currentUser.email)
         }
       } catch (error) {
         console.error('Middleware: Error in admin check:', error)
-        // Don't block access on unexpected errors - let the app handle it
+        // For unexpected errors, redirect to login to be safe
+        console.log('Middleware: Unexpected error, redirecting to login for safety')
+        const loginUrl = new URL('/login', request.url)
+        loginUrl.searchParams.set('redirect', request.nextUrl.pathname)
+        return NextResponse.redirect(loginUrl)
       }
     }
 

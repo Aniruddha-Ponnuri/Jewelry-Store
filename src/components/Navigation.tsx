@@ -3,18 +3,34 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { useAuth } from '@/contexts/AuthContext'
-import { useAdmin } from '@/hooks/useAdmin'
+import { useRobustAuth } from '@/hooks/useRobustAuth'
 import { Button } from '@/components/ui/button'
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet'
 import { Badge } from '@/components/ui/badge'
 import { Menu, Heart, LogOut, Shield, Package, FolderOpen, Loader2 } from 'lucide-react'
 import ClientNavigation from './ClientNavigation'
+import AdminDropdown from './AdminDropdown'
 
 export default function Navigation() {
   const { user, signOut } = useAuth()
-  const { isAdmin } = useAdmin()
+  const auth = useRobustAuth({
+    requireAuth: false,
+    requireAdmin: false,
+    refreshInterval: 60000
+  })
   const [isOpen, setIsOpen] = useState(false)
   const [isMobileLoggingOut, setIsMobileLoggingOut] = useState(false)
+
+  // Debug logging
+  console.log('🔍 [Navigation] Auth status:', {
+    user: user?.email,
+    isAuthenticated: auth.isAuthenticated,
+    isAdmin: auth.isAdmin,
+    isMasterAdmin: auth.isMasterAdmin,
+    loading: auth.loading,
+    error: auth.error,
+    sessionValid: auth.sessionValid
+  })
   const handleMobileSignOut = async () => {
     setIsMobileLoggingOut(true)
     try {
@@ -25,6 +41,8 @@ export default function Navigation() {
     } catch (error) {
       console.error('Mobile logout error:', error)
       window.location.href = '/'
+    } finally {
+      setIsMobileLoggingOut(false)
     }
   }
 
@@ -40,7 +58,7 @@ export default function Navigation() {
         <Link href="/bookmarks" className="text-sm font-medium hover:text-amber-600 transition-colors">
           Bookmarks
         </Link>
-      )}      {isAdmin && (
+      )}      {auth.isAdmin && (
         <Link 
           href="/admin" 
           className="admin-desktop-button flex items-center gap-2"
@@ -66,7 +84,10 @@ export default function Navigation() {
           {/* Desktop Navigation */}
           <nav className="hidden lg:flex items-center space-x-6">
             <NavItems />
-          </nav>          <div className="flex items-center space-x-4">
+          </nav>
+
+          <div className="flex items-center space-x-4">
+            <AdminDropdown />
             <ClientNavigation />
 
             {/* Mobile Navigation */}
@@ -76,11 +97,13 @@ export default function Navigation() {
                   <Menu className="h-5 w-5" />
                   <span className="sr-only">Toggle Menu</span>
                 </Button>
-              </SheetTrigger>              <SheetContent side="right" className="w-[280px] sm:w-[320px] max-w-[90vw] flex flex-col h-full bg-white">
+              </SheetTrigger>
+              
+              <SheetContent side="right" className="w-[280px] sm:w-[320px] max-w-[90vw] flex flex-col h-full bg-white">
                 <div className="flex flex-col h-full">
                   <SheetHeader className="px-4 py-4 border-b border-gray-100 flex-shrink-0">
                     <SheetTitle className="text-left">Navigation Menu</SheetTitle>
-                    {user && isAdmin && (
+                    {user && auth.isAdmin && (
                       <div className="text-left">
                         <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200">
                           Admin Mode
@@ -88,9 +111,11 @@ export default function Navigation() {
                       </div>
                     )}
                   </SheetHeader>
-                    <div className="flex-1 overflow-y-auto px-4 py-4 pb-8">
-                    <div className="flex flex-col gap-6">                  {/* Main Navigation */}
-                  <div className="space-y-2">
+                  
+                  <div className="flex-1 overflow-y-auto px-4 py-4 pb-8">
+                    <div className="flex flex-col gap-6">
+                      {/* Main Navigation */}
+                      <div className="space-y-2">
                     <h3 className="text-sm font-medium text-gray-500 uppercase tracking-wide mb-3">Main</h3>
                     <Link 
                       href="/" 
@@ -116,8 +141,10 @@ export default function Navigation() {
                         Bookmarks
                       </Link>
                     )}
-                  </div>{/* Enhanced Admin Section */}
-                  {isAdmin && (
+                      </div>
+
+                      {/* Enhanced Admin Section */}
+                      {auth.isAdmin && (
                     <div className="space-y-4 pt-2 border-t-2 border-amber-200">
                       {/* Admin Header */}
                       <div className="bg-gradient-to-r from-amber-50 to-amber-100 p-4 rounded-xl border border-amber-200 shadow-sm">
@@ -125,17 +152,21 @@ export default function Navigation() {
                           🛡️ Admin Panel
                         </h3>
                         <p className="text-sm text-amber-600 mt-1">Administrative Controls</p>
-                      </div>                      {/* Primary Admin Dashboard Button */}
-                      <Link 
-                        href="/admin" 
-                        className="admin-mobile-primary"
-                        onClick={() => setIsOpen(false)}
-                      >
-                        <div className="flex items-center gap-3">
-                          <span>🛡️ Admin Dashboard</span>
-                        </div>
-                      </Link>                        {/* Admin Management Options */}
-                      <div className="space-y-3">
+                          </div>
+                          
+                          {/* Primary Admin Dashboard Button */}
+                          <Link 
+                            href="/admin" 
+                            className="admin-mobile-primary"
+                            onClick={() => setIsOpen(false)}
+                          >
+                            <div className="flex items-center gap-3">
+                              <span>🛡️ Admin Dashboard</span>
+                            </div>
+                          </Link>
+                          
+                          {/* Admin Management Options */}
+                          <div className="space-y-3">
                         <Link 
                           href="/admin/users" 
                           className="admin-mobile-secondary flex items-center gap-3"
@@ -160,50 +191,53 @@ export default function Navigation() {
                           <FolderOpen className="h-5 w-5 text-amber-600" />
                           <span>📂 Manage Categories</span>
                         </Link>
-                      </div>
-                    </div>
-                  )}
+                          </div>
+                        </div>
+                      )}
 
-                  {/* Auth Section */}
-                  {!user && (
-                    <div className="space-y-3 pt-4 border-t">
-                      <h3 className="text-sm font-medium text-gray-500 uppercase tracking-wide">Account</h3>
-                      <Link href="/login" onClick={() => setIsOpen(false)}>
-                        <Button variant="outline" className="w-full justify-start">
-                          Sign In
-                        </Button>
-                      </Link>
-                      <Link href="/register" onClick={() => setIsOpen(false)}>
-                        <Button className="w-full justify-start">
-                          Sign Up
-                        </Button>
-                      </Link>
-                    </div>
-                  )}                      {/* User Actions */}
+                      {/* Auth Section */}
+                      {!user && (
+                        <div className="space-y-3 pt-4 border-t">
+                          <h3 className="text-sm font-medium text-gray-500 uppercase tracking-wide">Account</h3>
+                          <Link href="/login" onClick={() => setIsOpen(false)}>
+                            <Button variant="outline" className="w-full justify-start">
+                              Sign In
+                            </Button>
+                          </Link>
+                          <Link href="/register" onClick={() => setIsOpen(false)}>
+                            <Button className="w-full justify-start">
+                              Sign Up
+                            </Button>
+                          </Link>
+                        </div>
+                      )}
+
+                      {/* User Actions */}
                       {user && (
                         <div className="space-y-3 pt-4 border-t">
                           <h3 className="text-sm font-medium text-gray-500 uppercase tracking-wide">Account</h3>
                           <div className="text-sm text-gray-600 break-words px-2 py-1 bg-gray-50 rounded">{user.email}</div>
                           
-                          {/* Debug link for testing */}
-                          <Link href="/debug-logout" onClick={() => setIsOpen(false)}>
-                            <Button variant="ghost" className="w-full justify-start text-xs text-gray-500 hover:text-amber-600">
-                              Logout
-                            </Button>
-                          </Link>                          <Button 
+                          <Button 
                             variant="outline" 
                             className="w-full justify-start text-red-600 hover:text-red-700"
                             onClick={handleMobileSignOut}
                             disabled={isMobileLoggingOut}
                           >
                             {isMobileLoggingOut ? (
-                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                              <>
+                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                Signing Out...
+                              </>
                             ) : (
-                              <LogOut className="mr-2 h-4 w-4" />
+                              <>
+                                <LogOut className="mr-2 h-4 w-4" />
+                                Sign Out
+                              </>
                             )}
-                            {isMobileLoggingOut ? 'Logging out...' : 'Sign Out'}
                           </Button>
-                        </div>                      )}
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
