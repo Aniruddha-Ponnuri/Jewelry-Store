@@ -36,28 +36,8 @@ export default function DiagnosticPage() {
         <h1 className="text-3xl font-bold text-gray-900 mb-2">
           🔧 Admin & Upload Diagnostic
         </h1>
-        <p className="text-gray-600">
-          Use this tool to diagnose admin creation and image upload issues.
-        </p>
       </div>
-      
       <AdminDiagnostic />
-      
-      <div className="mt-8 p-4 bg-blue-50 rounded-lg">
-        <h2 className="font-semibold text-blue-900 mb-2">💡 Troubleshooting Steps:</h2>
-        <ol className="list-decimal list-inside space-y-2 text-blue-800 text-sm">
-          <li>Run the diagnostic above to identify issues</li>
-          <li>Go to Supabase SQL Editor and run these scripts in order:
-            <ul className="list-disc list-inside ml-4 mt-1">
-              <li><code>fix-admin-database.sql</code> - Sets up admin functions</li>
-              <li><code>fix-image-storage.sql</code> - Sets up image storage</li>
-              <li><code>bootstrap-admin.sql</code> - Creates your first admin (edit with your email)</li>
-            </ul>
-          </li>
-          <li>Go to Supabase Dashboard → Storage and verify the &quot;images&quot; bucket exists</li>
-          <li>Run the diagnostic again to verify fixes</li>
-        </ol>
-      </div>
     </div>
   )
 }

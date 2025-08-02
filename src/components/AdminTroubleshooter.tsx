@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
-import { AlertTriangle, CheckCircle, XCircle, RefreshCw } from 'lucide-react'
+import { AlertTriangle, CheckCircle, XCircle, RefreshCw, Wrench, Database } from 'lucide-react'
 
 interface DiagnosticResult {
   test: string
@@ -252,16 +252,69 @@ export default function AdminTroubleshooter() {
     }
   }
 
+  const getOverallStatusIcon = () => {
+    const errorCount = results.filter(r => r.status === 'error').length
+    const warningCount = results.filter(r => r.status === 'warning').length
+    
+    if (errorCount > 0) return <XCircle className="h-4 w-4 text-white" />
+    if (warningCount > 0) return <AlertTriangle className="h-4 w-4 text-white" />
+    if (results.length > 0) return <CheckCircle className="h-4 w-4 text-white" />
+    return <Wrench className="h-4 w-4 text-white" />
+  }
+
+  const getOverallStatusBadge = () => {
+    if (isRunning) return (
+      <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
+        <RefreshCw className="h-3 w-3 mr-1 animate-spin" />
+        Running...
+      </Badge>
+    )
+    
+    const errorCount = results.filter(r => r.status === 'error').length
+    const warningCount = results.filter(r => r.status === 'warning').length
+    const successCount = results.filter(r => r.status === 'success').length
+    
+    if (errorCount > 0) return (
+      <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200">
+        <XCircle className="h-3 w-3 mr-1" />
+        {errorCount} Error{errorCount > 1 ? 's' : ''}
+      </Badge>
+    )
+    if (warningCount > 0) return (
+      <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-200">
+        <AlertTriangle className="h-3 w-3 mr-1" />
+        {warningCount} Warning{warningCount > 1 ? 's' : ''}
+      </Badge>
+    )
+    if (successCount > 0) return (
+      <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+        <CheckCircle className="h-3 w-3 mr-1" />
+        All Tests Passed
+      </Badge>
+    )
+    return (
+      <Badge variant="outline" className="bg-gray-50 text-gray-700 border-gray-200">
+        <Wrench className="h-3 w-3 mr-1" />
+        Ready to Test
+      </Badge>
+    )
+  }
+
   return (
-    <Card className="mb-6">
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <AlertTriangle className="w-5 h-5" />
-          Admin Troubleshooter
+    <Card className="w-full bg-white border-gray-200 shadow-sm">
+      <CardHeader className="border-b border-gray-200 bg-gray-50/50">
+        <CardTitle className="flex items-center justify-between">
+          <div className="flex items-center space-x-3">
+            <div className="h-10 w-10 bg-gradient-to-r from-blue-500 to-blue-600 rounded-full flex items-center justify-center">
+              {getOverallStatusIcon()}
+            </div>
+            <div>
+              <h3 className="text-lg font-bold text-gray-800">System Troubleshooter</h3>
+              <p className="text-sm text-gray-600 font-normal">Run diagnostics to identify admin creation and image upload issues</p>
+            </div>
+          </div>
+          {getOverallStatusBadge()}
         </CardTitle>
-        <CardDescription>
-          Run diagnostics to identify admin creation and image upload issues
-        </CardDescription>
       </CardHeader>
       <CardContent>
         <div className="space-y-4">

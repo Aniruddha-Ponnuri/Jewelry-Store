@@ -3,8 +3,9 @@
 import { useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Alert, AlertDescription } from '@/components/ui/alert'
+import QuickAdminTest from './QuickAdminTest'
 
 interface DiagnosticResults {
   session?: Record<string, unknown>
@@ -19,6 +20,8 @@ export default function AdminDiagnostic() {
   const [results, setResults] = useState<DiagnosticResults | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  
+
 
   const runDiagnostic = async () => {
     setLoading(true)
@@ -161,19 +164,30 @@ export default function AdminDiagnostic() {
     setError('Please run the SQL scripts in Supabase SQL Editor:\n1. fix-admin-database.sql\n2. fix-image-storage.sql\n3. bootstrap-admin.sql (with your email)')
   }
 
+
   return (
-    <Card className="w-full max-w-4xl mx-auto">
-      <CardHeader>
-        <CardTitle>🔧 Admin & Upload Diagnostic Tool</CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        <div className="flex gap-2">
-          <Button onClick={runDiagnostic} disabled={loading}>
-            {loading ? 'Running...' : 'Run Diagnostic'}
-          </Button>
-          <Button variant="outline" onClick={fixAdminFunctions}>
-            Show Fix Instructions
-          </Button>
+    <div className="w-full max-w-4xl mx-auto space-y-6">
+      {/* Fast Admin Status & Functionality Verification */}
+      <QuickAdminTest />
+
+      {/* Main Diagnostic Tool Card */}
+      <Card>
+        <CardHeader>
+          <CardTitle>🔧 Admin & Upload Diagnostic Tool</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-6">
+
+        {/* Full Diagnostic Section */}
+        <div className="border-t pt-4">
+          <h3 className="text-lg font-semibold mb-3">Full System Diagnostic</h3>
+          <div className="flex gap-2">
+            <Button onClick={runDiagnostic} disabled={loading}>
+              {loading ? 'Running...' : 'Run Full Diagnostic'}
+            </Button>
+            <Button variant="outline" onClick={fixAdminFunctions}>
+              Show Fix Instructions
+            </Button>
+          </div>
         </div>
 
         {error && (
@@ -262,5 +276,6 @@ export default function AdminDiagnostic() {
         )}
       </CardContent>
     </Card>
+    </div>
   )
 }

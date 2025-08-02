@@ -1,6 +1,7 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useCallback } from 'react'
+import { createClient } from '@/lib/supabase/client'
 import { useRobustAuth } from '@/hooks/useRobustAuth'
 import RobustAdminLayout from '@/components/RobustAdminLayout'
 import AdminDiagnostic from '@/components/AdminDiagnostic'
@@ -12,7 +13,7 @@ import AdminUsersDebug from '@/components/AdminUsersDebug'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { AlertTriangle, CheckCircle, Activity, Bug, Wrench, TestTube, Shield, Users } from 'lucide-react'
+import { AlertTriangle, CheckCircle, Activity, Bug, Wrench, TestTube, Shield, Users, RefreshCw, XCircle, Package, FolderOpen, Database } from 'lucide-react'
 
 export default function AdminDiagnosticPage() {
   const auth = useRobustAuth({
@@ -24,6 +25,9 @@ export default function AdminDiagnosticPage() {
   })
 
   const [activeView, setActiveView] = useState('overview')
+  const [comprehensiveTestResults, setComprehensiveTestResults] = useState<any[]>([])
+  const [comprehensiveTesting, setComprehensiveTesting] = useState(false)
+  const supabase = createClient()
 
   const NavButton = ({ id, icon: Icon, children, active }: { 
     id: string, 
@@ -105,6 +109,9 @@ export default function AdminDiagnosticPage() {
             </NavButton>
             <NavButton id="quick-test" icon={TestTube} active={activeView === 'quick-test'}>
               Quick Test
+            </NavButton>
+            <NavButton id="comprehensive-test" icon={Activity} active={activeView === 'comprehensive-test'}>
+              Comprehensive Test
             </NavButton>
           </div>
         </CardContent>
@@ -191,7 +198,15 @@ export default function AdminDiagnosticPage() {
                   variant="outline"
                 >
                   <TestTube className="h-4 w-4 mr-2" />
-                  Quick Admin Test
+                  Fast Admin Status & Functionality Verification
+                </Button>
+                <Button 
+                  onClick={() => setActiveView('comprehensive-test')} 
+                  className="w-full justify-start"
+                  variant="outline"
+                >
+                  <Activity className="h-4 w-4 mr-2" />
+                  Comprehensive Test Suite
                 </Button>
               </CardContent>
             </Card>
@@ -226,51 +241,6 @@ export default function AdminDiagnosticPage() {
               </CardContent>
             </Card>
           </div>
-
-          {/* Troubleshooting Guide */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center space-x-2">
-                <AlertTriangle className="h-5 w-5 text-amber-600" />
-                <span>Troubleshooting Guide</span>
-              </CardTitle>
-              <CardDescription>
-                Follow these steps to resolve common admin and upload issues
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                <div className="flex items-start space-x-3">
-                  <div className="flex-shrink-0 w-6 h-6 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center text-sm font-medium">1</div>
-                  <div>
-                    <h4 className="font-medium text-gray-900">Run System Diagnostic</h4>
-                    <p className="text-sm text-gray-600">Start with the full diagnostic to identify specific issues</p>
-                  </div>
-                </div>
-                <div className="flex items-start space-x-3">
-                  <div className="flex-shrink-0 w-6 h-6 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center text-sm font-medium">2</div>
-                  <div>
-                    <h4 className="font-medium text-gray-900">Database Setup</h4>
-                    <p className="text-sm text-gray-600">Run SQL scripts: fix-admin-database.sql → fix-image-storage.sql → bootstrap-admin.sql</p>
-                  </div>
-                </div>
-                <div className="flex items-start space-x-3">
-                  <div className="flex-shrink-0 w-6 h-6 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center text-sm font-medium">3</div>
-                  <div>
-                    <h4 className="font-medium text-gray-900">Storage Verification</h4>
-                    <p className="text-sm text-gray-600">Check Supabase Dashboard → Storage → Verify &quot;images&quot; bucket exists and is public</p>
-                  </div>
-                </div>
-                <div className="flex items-start space-x-3">
-                  <div className="flex-shrink-0 w-6 h-6 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center text-sm font-medium">4</div>
-                  <div>
-                    <h4 className="font-medium text-gray-900">Re-run Diagnostic</h4>
-                    <p className="text-sm text-gray-600">Verify all fixes are working by running the diagnostic again</p>
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
         </div>
       )}
 
@@ -330,22 +300,7 @@ export default function AdminDiagnosticPage() {
 
       {/* Quick Test View */}
       {activeView === 'quick-test' && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center space-x-2">
-              <TestTube className="h-5 w-5 text-green-600" />
-              <span>Quick Admin Test</span>
-            </CardTitle>
-            <CardDescription>
-              Fast admin status and functionality verification
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="max-w-2xl">
-              <QuickAdminTest />
-            </div>
-          </CardContent>
-        </Card>
+        <QuickAdminTest />
       )}
 
       {/* Admin Debug Panel View */}
@@ -383,6 +338,394 @@ export default function AdminDiagnosticPage() {
           </CardContent>
         </Card>
       )}
+
+      {/* Comprehensive Test View */}
+      {activeView === 'comprehensive-test' && (
+        <ComprehensiveTestView />
+      )}
     </RobustAdminLayout>
   )
+
+  function ComprehensiveTestView() {
+    const runComprehensiveTests = useCallback(async () => {
+      setComprehensiveTesting(true)
+      const results: any[] = []
+
+      // Test 1: Authentication
+      try {
+        results.push({ name: 'Authentication Status', status: 'testing', message: 'Checking authentication...' })
+        setComprehensiveTestResults([...results])
+
+        const authResult = {
+          isAuthenticated: auth.isAuthenticated,
+          isAdmin: auth.isAdmin,
+          isMasterAdmin: auth.isMasterAdmin,
+          userEmail: auth.user?.email,
+          sessionValid: auth.sessionValid
+        }
+
+        if (auth.isAuthenticated && auth.isAdmin) {
+          results[results.length - 1] = {
+            name: 'Authentication Status',
+            status: 'success',
+            message: `Authenticated as ${auth.isMasterAdmin ? 'Master Admin' : 'Admin'}: ${auth.user?.email}`,
+            details: authResult
+          }
+        } else {
+          results[results.length - 1] = {
+            name: 'Authentication Status',
+            status: 'error',
+            message: `Authentication failed: ${!auth.isAuthenticated ? 'Not logged in' : 'Not admin'}`,
+            details: authResult
+          }
+        }
+      } catch (error) {
+        results[results.length - 1] = {
+          name: 'Authentication Status',
+          status: 'error',
+          message: `Authentication test failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
+          details: { error }
+        }
+      }
+      setComprehensiveTestResults([...results])
+
+      // Test 2: Database Functions
+      try {
+        results.push({ name: 'Database Admin Functions', status: 'testing', message: 'Testing admin RPC functions...' })
+        setComprehensiveTestResults([...results])
+
+        const { data: isAdmin, error: adminError } = await supabase.rpc('is_admin')
+        const { data: isMasterAdmin, error: masterError } = await supabase.rpc('is_master_admin')
+
+        if (!adminError && !masterError && isAdmin) {
+          results[results.length - 1] = {
+            name: 'Database Admin Functions',
+            status: 'success',
+            message: `Database functions working: Admin=${isAdmin}, Master=${isMasterAdmin}`,
+            details: { isAdmin, isMasterAdmin }
+          }
+        } else {
+          results[results.length - 1] = {
+            name: 'Database Admin Functions',
+            status: 'error',
+            message: `Database function issues: ${adminError?.message || masterError?.message || 'Not admin'}`,
+            details: { adminError: adminError?.message, masterError: masterError?.message }
+          }
+        }
+      } catch (error) {
+        results[results.length - 1] = {
+          name: 'Database Admin Functions',
+          status: 'error',
+          message: `Database test failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
+          details: { error }
+        }
+      }
+      setComprehensiveTestResults([...results])
+
+      // Test 3: Products Management
+      try {
+        results.push({ name: 'Products Management', status: 'testing', message: 'Testing product operations...' })
+        setComprehensiveTestResults([...results])
+
+        const { data: products, error: productsError } = await supabase.from('products').select('*').limit(5)
+
+        if (!productsError) {
+          results[results.length - 1] = {
+            name: 'Products Management',
+            status: 'success',
+            message: `Products accessible: ${products?.length || 0} products found`,
+            details: { productCount: products?.length || 0 }
+          }
+        } else {
+          results[results.length - 1] = {
+            name: 'Products Management',
+            status: 'error',
+            message: `Products access failed: ${productsError.message}`,
+            details: { error: productsError.message }
+          }
+        }
+      } catch (error) {
+        results[results.length - 1] = {
+          name: 'Products Management',
+          status: 'error',
+          message: `Products test failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
+          details: { error }
+        }
+      }
+      setComprehensiveTestResults([...results])
+
+      // Test 4: Categories Management
+      try {
+        results.push({ name: 'Categories Management', status: 'testing', message: 'Testing category operations...' })
+        setComprehensiveTestResults([...results])
+
+        const { data: categories, error: loadError } = await supabase.from('categories').select('*').order('created_at', { ascending: false })
+
+        if (!loadError) {
+          results[results.length - 1] = {
+            name: 'Categories Management',
+            status: 'success',
+            message: `Categories loaded: ${categories?.length || 0} found`,
+            details: { count: categories?.length || 0 }
+          }
+        } else {
+          results[results.length - 1] = {
+            name: 'Categories Management',
+            status: 'error',
+            message: `Categories load failed: ${loadError.message}`,
+            details: { error: loadError.message }
+          }
+        }
+      } catch (error) {
+        results[results.length - 1] = {
+          name: 'Categories Management',
+          status: 'error',
+          message: `Categories test failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
+          details: { error }
+        }
+      }
+      setComprehensiveTestResults([...results])
+
+      // Test 5: Users Management
+      try {
+        results.push({ name: 'Users Management', status: 'testing', message: 'Testing user management...' })
+        setComprehensiveTestResults([...results])
+
+        if (!auth.isMasterAdmin) {
+          results[results.length - 1] = {
+            name: 'Users Management',
+            status: 'warning',
+            message: 'Skipped: Requires Master Admin privileges',
+            details: { isMasterAdmin: false }
+          }
+        } else {
+          const { data: adminUsers, error: usersError } = await supabase.from('admin_users').select('*').eq('is_active', true)
+
+          if (!usersError) {
+            results[results.length - 1] = {
+              name: 'Users Management',
+              status: 'success',
+              message: `Admin users loaded: ${adminUsers?.length || 0} found`,
+              details: { count: adminUsers?.length || 0 }
+            }
+          } else {
+            results[results.length - 1] = {
+              name: 'Users Management',
+              status: 'error',
+              message: `Users load failed: ${usersError.message}`,
+              details: { error: usersError.message }
+            }
+          }
+        }
+      } catch (error) {
+        results[results.length - 1] = {
+          name: 'Users Management',
+          status: 'error',
+          message: `Users test failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
+          details: { error }
+        }
+      }
+      setComprehensiveTestResults([...results])
+
+      // Test 6: Storage
+      try {
+        results.push({ name: 'Storage & Upload', status: 'testing', message: 'Testing storage access...' })
+        setComprehensiveTestResults([...results])
+
+        const { data: buckets, error: bucketsError } = await supabase.storage.listBuckets()
+        const imagesBucket = buckets?.find(b => b.name === 'images')
+
+        if (!bucketsError && imagesBucket) {
+          results[results.length - 1] = {
+            name: 'Storage & Upload',
+            status: 'success',
+            message: `Storage accessible: ${buckets?.length || 0} buckets, images bucket found`,
+            details: { totalBuckets: buckets?.length || 0, imagesBucketExists: true }
+          }
+        } else if (!bucketsError && !imagesBucket) {
+          results[results.length - 1] = {
+            name: 'Storage & Upload',
+            status: 'warning',
+            message: `Storage accessible but images bucket missing`,
+            details: { totalBuckets: buckets?.length || 0, imagesBucketExists: false }
+          }
+        } else {
+          results[results.length - 1] = {
+            name: 'Storage & Upload',
+            status: 'error',
+            message: `Storage access failed: ${bucketsError?.message}`,
+            details: { error: bucketsError?.message }
+          }
+        }
+      } catch (error) {
+        results[results.length - 1] = {
+          name: 'Storage & Upload',
+          status: 'error',
+          message: `Storage test failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
+          details: { error }
+        }
+      }
+      setComprehensiveTestResults([...results])
+
+      setComprehensiveTesting(false)
+    }, [auth, supabase])
+
+    const getTestIcon = (testName: string) => {
+      if (testName.includes('Authentication')) return <Shield className="w-4 h-4" />
+      if (testName.includes('Database')) return <Database className="w-4 h-4" />
+      if (testName.includes('Products')) return <Package className="w-4 h-4" />
+      if (testName.includes('Categories')) return <FolderOpen className="w-4 h-4" />
+      if (testName.includes('Users')) return <Users className="w-4 h-4" />
+      if (testName.includes('Storage')) return <Database className="w-4 h-4" />
+      return <TestTube className="w-4 h-4" />
+    }
+
+    const successCount = comprehensiveTestResults.filter(r => r.status === 'success').length
+    const errorCount = comprehensiveTestResults.filter(r => r.status === 'error').length
+    const warningCount = comprehensiveTestResults.filter(r => r.status === 'warning').length
+
+    return (
+      <Card className="w-full bg-white border-gray-200 shadow-sm">
+        <CardHeader className="border-b border-gray-200 bg-gray-50/50">
+          <CardTitle className="flex items-center justify-between">
+            <div className="flex items-center space-x-3">
+              <div className="h-10 w-10 bg-gradient-to-r from-blue-500 to-blue-600 rounded-full flex items-center justify-center">
+                {comprehensiveTesting ? (
+                  <RefreshCw className="h-4 w-4 text-white animate-spin" />
+                ) : errorCount > 0 ? (
+                  <XCircle className="h-4 w-4 text-white" />
+                ) : warningCount > 0 ? (
+                  <AlertTriangle className="h-4 w-4 text-white" />
+                ) : comprehensiveTestResults.length > 0 ? (
+                  <CheckCircle className="h-4 w-4 text-white" />
+                ) : (
+                  <Activity className="h-4 w-4 text-white" />
+                )}
+              </div>
+              <div>
+                <h3 className="text-lg font-bold text-gray-800">Comprehensive Test Suite</h3>
+                <p className="text-sm text-gray-600 font-normal">Complete verification of all admin functions from /test page</p>
+              </div>
+            </div>
+            {comprehensiveTesting ? (
+              <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
+                <RefreshCw className="h-3 w-3 mr-1 animate-spin" />
+                Testing...
+              </Badge>
+            ) : comprehensiveTestResults.length > 0 ? (
+              <Badge variant="outline" className={errorCount > 0 ? "bg-red-50 text-red-700 border-red-200" : warningCount > 0 ? "bg-yellow-50 text-yellow-700 border-yellow-200" : "bg-green-50 text-green-700 border-green-200"}>
+                {errorCount > 0 ? (
+                  <><XCircle className="h-3 w-3 mr-1" />{errorCount} Error{errorCount > 1 ? 's' : ''}</>
+                ) : warningCount > 0 ? (
+                  <><AlertTriangle className="h-3 w-3 mr-1" />{warningCount} Warning{warningCount > 1 ? 's' : ''}</>
+                ) : (
+                  <><CheckCircle className="h-3 w-3 mr-1" />All Tests Passed</>
+                )}
+              </Badge>
+            ) : (
+              <Badge variant="outline" className="bg-gray-50 text-gray-700 border-gray-200">
+                <Activity className="h-3 w-3 mr-1" />
+                Ready to Test
+              </Badge>
+            )}
+          </CardTitle>
+        </CardHeader>
+        
+        <CardContent className="pt-6">
+          <div className="space-y-4">
+            {/* Test Summary */}
+            {comprehensiveTestResults.length > 0 && (
+              <div className="flex gap-4 text-sm mb-4">
+                <div className="flex items-center gap-2">
+                  <CheckCircle className="w-4 h-4 text-green-600" />
+                  <span>Success: {successCount}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <AlertTriangle className="w-4 h-4 text-yellow-600" />
+                  <span>Warning: {warningCount}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <XCircle className="w-4 h-4 text-red-600" />
+                  <span>Error: {errorCount}</span>
+                </div>
+              </div>
+            )}
+
+            {/* Test Button */}
+            <Button 
+              onClick={runComprehensiveTests} 
+              disabled={comprehensiveTesting}
+              className="bg-blue-600 hover:bg-blue-700 text-white font-semibold flex items-center gap-2"
+            >
+              {comprehensiveTesting ? (
+                <>
+                  <RefreshCw className="w-4 h-4 animate-spin" />
+                  Running Comprehensive Tests...
+                </>
+              ) : (
+                <>
+                  <Activity className="w-4 h-4" />
+                  Run All Admin Function Tests
+                </>
+              )}
+            </Button>
+
+            {/* Test Results */}
+            {comprehensiveTestResults.length > 0 && (
+              <div className="space-y-3">
+                <h4 className="font-semibold text-gray-800 flex items-center gap-2">
+                  <TestTube className="w-4 h-4" />
+                  Test Results ({comprehensiveTestResults.length} tests)
+                </h4>
+                
+                {comprehensiveTestResults.map((result, index) => (
+                  <div key={index} className="bg-white border border-gray-200 rounded-lg overflow-hidden">
+                    <div className={`px-4 py-3 border-b border-gray-200 ${
+                      result.status === 'success' ? 'bg-green-50' :
+                      result.status === 'warning' ? 'bg-yellow-50' :
+                      result.status === 'error' ? 'bg-red-50' :
+                      'bg-blue-50'
+                    }`}>
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          {getTestIcon(result.name)}
+                          <span className="font-medium text-gray-800">{result.name}</span>
+                        </div>
+                        <Badge variant="outline" className={
+                          result.status === 'success' ? 'bg-green-100 text-green-800 border-green-300' :
+                          result.status === 'warning' ? 'bg-yellow-100 text-yellow-800 border-yellow-300' :
+                          result.status === 'error' ? 'bg-red-100 text-red-800 border-red-300' :
+                          'bg-blue-100 text-blue-800 border-blue-300'
+                        }>
+                          {result.status === 'success' && <CheckCircle className="w-3 h-3 mr-1" />}
+                          {result.status === 'warning' && <AlertTriangle className="w-3 h-3 mr-1" />}
+                          {result.status === 'error' && <XCircle className="w-3 h-3 mr-1" />}
+                          {result.status === 'testing' && <RefreshCw className="w-3 h-3 mr-1 animate-spin" />}
+                          {result.status.toUpperCase()}
+                        </Badge>
+                      </div>
+                      <p className="text-sm text-gray-600 mt-1">{result.message}</p>
+                    </div>
+                    
+                    {result.details && (
+                      <div className="p-4">
+                        <details className="text-sm">
+                          <summary className="cursor-pointer text-gray-600 hover:text-gray-800 mb-2">
+                            View Technical Details
+                          </summary>
+                          <pre className="text-xs font-mono bg-gray-50 p-3 rounded-lg border overflow-auto leading-relaxed text-gray-800">
+                            {JSON.stringify(result.details, null, 2)}
+                          </pre>
+                        </details>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+    )
+  }
 }

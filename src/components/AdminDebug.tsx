@@ -7,6 +7,7 @@ import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
+import { Shield, Database, TestTube, CheckCircle, XCircle, AlertCircle } from 'lucide-react'
 
 interface ManualCheckResult {
   session?: { user_id: string; email?: string; expires_at?: number } | null;
@@ -681,18 +682,55 @@ export default function AdminDebug() {
     }
   }
 
+  const getOverallStatusIcon = () => {
+    if (!auth.sessionValid) return <XCircle className="h-4 w-4 text-white" />
+    if (auth.isMasterAdmin) return <CheckCircle className="h-4 w-4 text-white" />
+    if (auth.isAdmin) return <Shield className="h-4 w-4 text-white" />
+    return <AlertCircle className="h-4 w-4 text-white" />
+  }
+
+  const getOverallStatusBadge = () => {
+    if (!auth.sessionValid) return (
+      <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200">
+        <XCircle className="h-3 w-3 mr-1" />
+        Session Invalid
+      </Badge>
+    )
+    if (auth.isMasterAdmin) return (
+      <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+        <CheckCircle className="h-3 w-3 mr-1" />
+        Master Admin
+      </Badge>
+    )
+    if (auth.isAdmin) return (
+      <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
+        <Shield className="h-3 w-3 mr-1" />
+        Admin
+      </Badge>
+    )
+    return (
+      <Badge variant="outline" className="bg-gray-50 text-gray-700 border-gray-200">
+        <AlertCircle className="h-3 w-3 mr-1" />
+        Regular User
+      </Badge>
+    )
+  }
+
   return (
-    <Card className="mb-6 bg-blue-50 border-blue-200">
-      <CardHeader>
-        <CardTitle className="text-blue-800 flex items-center justify-between">
-          🔍 Admin Debug Panel
-          <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200">
-            Master Admin Only
-          </Badge>
+    <Card className="w-full bg-white border-gray-200 shadow-sm">
+      <CardHeader className="border-b border-gray-200 bg-gray-50/50">
+        <CardTitle className="flex items-center justify-between">
+          <div className="flex items-center space-x-3">
+            <div className="h-10 w-10 bg-gradient-to-r from-blue-500 to-blue-600 rounded-full flex items-center justify-center">
+              {getOverallStatusIcon()}
+            </div>
+            <div>
+              <h3 className="text-lg font-bold text-gray-800">Admin Debug Panel</h3>
+              <p className="text-sm text-gray-600 font-normal">Essential debug information for admin authentication status</p>
+            </div>
+          </div>
+          {getOverallStatusBadge()}
         </CardTitle>
-        <CardDescription className="text-blue-700">
-          Essential debug information for admin authentication status
-        </CardDescription>
       </CardHeader>
       <CardContent>
         <div className="space-y-4">
