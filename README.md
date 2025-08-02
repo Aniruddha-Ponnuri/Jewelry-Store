@@ -17,13 +17,16 @@ A modern, responsive e-commerce platform for silver jewelry built with Next.js 1
 - **Responsive Design**: Optimized for mobile, tablet, and desktop devices
 
 ### 🛡️ **Admin Panel**
+
 - **Product Management**: Create, edit, and delete jewelry products
 - **Category Management**: Organize products into categories with emojis
 - **User Management**: Manage admin users and permissions
 - **Image Upload**: Upload and manage product images with Supabase Storage
 - **Admin Navigation**: Enhanced navigation with reactive buttons and smooth animations
+- **Diagnostic Tools**: In-app troubleshooters (`/admin/diagnostic`) to verify system health, check Supabase function status, and test core admin functionalities.
 
 ### 🎨 **UI/UX Features**
+
 - **Modern Design**: Clean, professional interface with amber/gold theming
 - **Smooth Animations**: Hover effects, scale animations, and transitions
 - **Loading States**: Skeleton loaders and professional loading indicators
@@ -31,6 +34,7 @@ A modern, responsive e-commerce platform for silver jewelry built with Next.js 1
 - **Accessibility**: ARIA labels, keyboard navigation, and screen reader support
 
 ### ⚡ **Performance Optimizations**
+
 - **Image Optimization**: Next.js Image component with lazy loading
 - **Code Splitting**: Dynamic imports and React.memo for optimal bundle size
 - **Database Optimization**: Efficient Supabase queries with pagination
@@ -40,6 +44,7 @@ A modern, responsive e-commerce platform for silver jewelry built with Next.js 1
 ## 🛠️ Tech Stack
 
 ### **Frontend**
+
 - **Next.js 15** - React framework with App Router
 - **TypeScript** - Type-safe development
 - **Tailwind CSS** - Utility-first CSS framework
@@ -47,12 +52,14 @@ A modern, responsive e-commerce platform for silver jewelry built with Next.js 1
 - **Lucide React** - Beautiful icons
 
 ### **Backend & Database**
+
 - **Supabase** - Backend-as-a-Service
 - **PostgreSQL** - Relational database
 - **Row Level Security** - Secure data access
 - **Real-time subscriptions** - Live data updates
 
 ### **Authentication & Authorization**
+
 - **Supabase Auth** - User authentication
 - **JWT tokens** - Secure session management
 - **Role-based access** - Admin and user permissions
@@ -60,50 +67,58 @@ A modern, responsive e-commerce platform for silver jewelry built with Next.js 1
 ## 🚀 Quick Start
 
 ### Prerequisites
-- Node.js 18+ 
+
+- Node.js 18+
 - npm or yarn
 - Supabase account
 
 ### Installation
 
 1. **Clone the repository**
-```bash
-git clone https://github.com/yourusername/jewelry-website.git
-cd jewelry-website
-```
+
+   ```bash
+   git clone https://github.com/yourusername/jewelry-website.git
+   cd jewelry-website
+   ```
 
 2. **Install dependencies**
-```bash
-npm install
-# or
-yarn install
-```
+
+   ```bash
+   npm install
+   # or
+   yarn install
+   ```
 
 3. **Set up environment variables**
-```bash
-cp .env.example .env.local
-```
 
-Add your Supabase credentials to `.env.local`:
-```env
-NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
-NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
-NEXT_PUBLIC_ADMIN_EMAIL=admin@silver.com
-```
+   ```bash
+   cp .env.example .env.local
+   ```
+
+   Add your Supabase credentials to `.env.local`:
+
+   ```env
+   NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
+   NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
+   NEXT_PUBLIC_ADMIN_EMAIL=admin@silver.com
+   ```
 
 4. **Set up the database**
-- Run the SQL scripts in the `SupaSetup` folder in your Supabase SQL Editor
-- Start with `simple-multiple-admin-setup.sql` for basic admin functionality
+
+   - Run the SQL scripts in the `SupaSetup` folder in your Supabase SQL Editor
+   - Start with `simple-multiple-admin-setup.sql` for basic admin functionality
 
 5. **Start the development server**
-```bash
-npm run dev
-# or
-yarn dev
-```
+
+   ```bash
+   npm run dev
+   # or
+   yarn dev
+   ```
 
 6. **Open your browser**
-Navigate to [http://localhost:3000](http://localhost:3000)
+
+   Navigate to [http://localhost:3000](http://localhost:3000)
 
 ## 📁 Project Structure
 
@@ -137,6 +152,7 @@ jewelry-website/
 ## 🗄️ Database Schema
 
 ### Core Tables
+
 - **products** - Jewelry product information
 - **categories** - Product categories with emojis
 - **users** - User profiles and data
@@ -144,6 +160,7 @@ jewelry-website/
 - **bookmarks** - User saved products
 
 ### Key Features
+
 - Row Level Security (RLS) enabled
 - Optimized indexes for performance
 - Foreign key relationships
@@ -152,6 +169,7 @@ jewelry-website/
 ## 🔐 Admin System
 
 ### Admin Features
+
 - **Multi-Admin Support**: Multiple administrators with full permissions
 - **Product Management**: CRUD operations for jewelry products
 - **Category Management**: Organize products with custom categories
@@ -159,11 +177,13 @@ jewelry-website/
 - **Image Upload**: Supabase Storage integration for product images
 
 ### Admin Access
+
 1. Register a user account normally
 2. Add the user email to admin_users table via SQL
 3. User will have admin access on next login
 
 ### Admin Navigation
+
 - Enhanced navbar with larger, reactive buttons
 - Smooth hover animations and visual feedback
 - Mobile-optimized admin interface
@@ -171,12 +191,14 @@ jewelry-website/
 ## 🎨 UI Components
 
 ### Design System
+
 - **Color Scheme**: Amber/gold primary colors with professional grays
 - **Typography**: Inter font with responsive sizing
 - **Spacing**: Consistent spacing scale with Tailwind CSS
 - **Shadows**: Subtle elevation with hover effects
 
 ### Responsive Design
+
 - **Mobile-first**: Optimized for mobile devices
 - **Breakpoints**: sm (640px), md (768px), lg (1024px), xl (1280px)
 - **Touch-friendly**: Larger touch targets for mobile interaction
@@ -185,11 +207,13 @@ jewelry-website/
 ## 🚀 Deployment
 
 ### Vercel Deployment (Recommended)
+
 1. Connect your GitHub repository to Vercel
 2. Add environment variables in Vercel dashboard
 3. Deploy automatically on every push
 
 ### Environment Variables for Production
+
 ```env
 NEXT_PUBLIC_SUPABASE_URL=your_production_supabase_url
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your_production_supabase_anon_key
@@ -207,6 +231,7 @@ NEXT_PUBLIC_ADMIN_EMAIL=your_admin_email
 ## 🔧 Development
 
 ### Available Scripts
+
 ```bash
 npm run dev          # Start development server
 npm run build        # Build for production
@@ -215,6 +240,7 @@ npm run lint         # Run ESLint
 ```
 
 ### Code Quality
+
 - **TypeScript**: Strict type checking
 - **ESLint**: Code linting and formatting
 - **Prettier**: Code formatting (if configured)
