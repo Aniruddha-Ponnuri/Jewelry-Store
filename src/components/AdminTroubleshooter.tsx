@@ -3,10 +3,10 @@
 import { useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
-import { AlertTriangle, CheckCircle, XCircle, RefreshCw, Wrench, Database } from 'lucide-react'
+import { AlertTriangle, CheckCircle, XCircle, RefreshCw, Wrench } from 'lucide-react'
 
 interface DiagnosticResult {
   test: string

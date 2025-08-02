@@ -5,9 +5,9 @@ import { useAuth } from '@/contexts/AuthContext'
 import { useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { Shield, Database, TestTube, CheckCircle, XCircle, AlertCircle } from 'lucide-react'
+import { Shield, CheckCircle, XCircle, AlertCircle } from 'lucide-react'
 
 interface ManualCheckResult {
   session?: { user_id: string; email?: string; expires_at?: number } | null;

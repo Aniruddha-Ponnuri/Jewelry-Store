@@ -160,25 +160,28 @@ export default function RobustAdminLayout({
             </Link>
             
             {auth.isMasterAdmin && (
-              <Link 
-                href="/admin/users" 
-                className="flex items-center gap-2 px-4 py-2 sm:px-6 sm:py-3 text-sm sm:text-base font-medium text-amber-600 hover:text-amber-700 bg-amber-50 hover:bg-amber-100 rounded-lg border border-amber-200 hover:border-amber-300 transition-all duration-200 hover:scale-105 active:scale-95 shadow-sm hover:shadow-md"
-              >
-                <Users className="w-4 h-4 sm:w-5 sm:h-5" />
-                <span>Users</span>
-              </Link>
+              <>
+                <Link 
+                  href="/admin/users" 
+                  className="flex items-center gap-2 px-4 py-2 sm:px-6 sm:py-3 text-sm sm:text-base font-medium text-amber-600 hover:text-amber-700 bg-amber-50 hover:bg-amber-100 rounded-lg border border-amber-200 hover:border-amber-300 transition-all duration-200 hover:scale-105 active:scale-95 shadow-sm hover:shadow-md"
+                >
+                  <Users className="w-4 h-4 sm:w-5 sm:h-5" />
+                  <span>Users</span>
+                </Link>
+
+                  <Link 
+                    href="/admin/diagnostic" 
+                    className="flex items-center gap-2 px-4 py-2 sm:px-6 sm:py-3 text-sm sm:text-base font-medium text-blue-600 hover:text-blue-700 bg-blue-50 hover:bg-blue-100 rounded-lg border border-blue-200 hover:border-blue-300 transition-all duration-200 hover:scale-105 active:scale-95 shadow-sm hover:shadow-md"
+                  >
+                    <Activity className="w-4 h-4 sm:w-5 sm:h-5" />
+                    <span>Diagnostic</span>
+                  </Link>
+                </>
             )}
 
-            <Link 
-              href="/admin/diagnostic" 
-              className="flex items-center gap-2 px-4 py-2 sm:px-6 sm:py-3 text-sm sm:text-base font-medium text-blue-600 hover:text-blue-700 bg-blue-50 hover:bg-blue-100 rounded-lg border border-blue-200 hover:border-blue-300 transition-all duration-200 hover:scale-105 active:scale-95 shadow-sm hover:shadow-md"
-            >
-              <Activity className="w-4 h-4 sm:w-5 sm:h-5" />
-              <span>Diagnostic</span>
-            </Link>
+            </div>
           </div>
         </div>
-      </div>
 
       {/* Main Content */}
       <div className="container mx-auto px-3 sm:px-4 py-4 sm:py-6 lg:py-8 max-w-7xl">
