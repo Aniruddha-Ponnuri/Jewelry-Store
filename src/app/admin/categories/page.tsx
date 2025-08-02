@@ -49,14 +49,14 @@ export default function AdminCategories() {
   // Load categories
   const loadCategories = useCallback(async () => {
     if (!auth.isFullyAuthorized || auth.loading) {
-      console.log('🔒 [AdminCategories] Waiting for auth verification before loading categories')
+      console.log('🔒 [ADMIN CATEGORIES] Waiting for auth verification before loading categories')
       return
     }
 
     try {
       setLoading(true)
       setError(null)
-      console.log('📂 [AdminCategories] Loading categories...')
+      console.log('📂 [ADMIN CATEGORIES] Loading categories...')
 
       const { data, error } = await supabase
         .from('categories')
@@ -64,16 +64,25 @@ export default function AdminCategories() {
         .order('created_at', { ascending: false })
 
       if (error) {
-        console.error('❌ [AdminCategories] Error loading categories:', error)
-        setError('Failed to load categories')
+        console.error('❌ [ADMIN CATEGORIES] Error loading categories:', {
+          message: error.message,
+          details: error.details,
+          hint: error.hint,
+          code: error.code
+        })
+        setError('Failed to load categories. Please refresh and try again.')
         return
       }
 
       setCategories(data || [])
-      console.log('✅ [AdminCategories] Categories loaded:', data?.length || 0)
+      console.log('✅ [ADMIN CATEGORIES] Categories loaded successfully:', data?.length || 0, 'categories')
     } catch (error) {
-      console.error('❌ [AdminCategories] Unexpected error loading categories:', error)
-      setError('Failed to load categories')
+      console.error('❌ [ADMIN CATEGORIES] Unexpected error loading categories:', {
+        message: error instanceof Error ? error.message : 'Unknown error',
+        stack: error instanceof Error ? error.stack : undefined,
+        error: error
+      })
+      setError('Failed to load categories. Please refresh and try again.')
     } finally {
       setLoading(false)
     }
@@ -167,8 +176,23 @@ export default function AdminCategories() {
       await loadCategories()
       
     } catch (error) {
-      console.error('❌ [AdminCategories] Unexpected error deleting category:', error)
-      setError('Failed to delete category')
+      // Properly handle and log category deletion errors
+      const errorDetails = {
+        message: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : undefined,
+        name: error instanceof Error ? error.name : typeof error,
+        errorType: typeof error,
+        categoryId: categoryId,
+        timestamp: new Date().toISOString()
+      }
+      
+      console.error('❌ [AdminCategories] Unexpected error deleting category:', errorDetails)
+      
+      if (error instanceof Error) {
+        setError(`Failed to delete category: ${error.message}`)
+      } else {
+        setError('Failed to delete category')
+      }
     } finally {
       setDeleting(prev => {
         const newSet = new Set(prev)

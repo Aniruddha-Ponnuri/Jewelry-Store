@@ -14,8 +14,26 @@ export default function Error({
   reset: () => void
 }) {
   useEffect(() => {
-    // Log the error to an error reporting service
-    console.error('Error occurred:', error)
+    // Properly log the error with full details
+    const errorDetails = {
+      message: error.message || 'Unknown error',
+      stack: error.stack,
+      name: error.name,
+      digest: error.digest,
+      timestamp: new Date().toISOString(),
+      userAgent: typeof window !== 'undefined' ? window.navigator.userAgent : 'Server-side',
+      url: typeof window !== 'undefined' ? window.location.href : 'Unknown'
+    }
+    
+    console.error('🚨 [ERROR BOUNDARY] Application error occurred:', errorDetails)
+    
+    // Only log in development
+    if (process.env.NODE_ENV === 'development') {
+      console.group('🔍 Error Debug Information')
+      console.error('Full error object:', error)
+      console.error('Error details:', errorDetails)
+      console.groupEnd()
+    }
   }, [error])
 
   return (

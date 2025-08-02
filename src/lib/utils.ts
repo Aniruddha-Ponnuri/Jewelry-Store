@@ -23,5 +23,6 @@ export function formatDate(date: string): string {
 
 export function getPublicImageUrl(path: string | null) {
   if (!path) return null
-  return `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/product_images/${path}`
+  // Use 'images' bucket to match the upload bucket
+  return `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/images/${path}`
 }

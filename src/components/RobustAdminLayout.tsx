@@ -3,7 +3,7 @@
 import { useRobustAuth } from '@/hooks/useRobustAuth'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Shield, Package, FolderOpen, Users, RefreshCw, AlertTriangle } from 'lucide-react'
+import { Shield, Package, FolderOpen, Users, RefreshCw, AlertTriangle, Activity } from 'lucide-react'
 import Link from 'next/link'
 
 interface RobustAdminLayoutProps {
@@ -157,6 +157,14 @@ export default function RobustAdminLayout({
             >
               <FolderOpen className="w-4 h-4 sm:w-5 sm:h-5" />
               <span>Categories</span>
+            </Link>
+            
+            <Link 
+              href="/admin/diagnostic" 
+              className="flex items-center gap-2 px-4 py-2 sm:px-6 sm:py-3 text-sm sm:text-base font-medium text-blue-600 hover:text-blue-700 bg-blue-50 hover:bg-blue-100 rounded-lg border border-blue-200 hover:border-blue-300 transition-all duration-200 hover:scale-105 active:scale-95 shadow-sm hover:shadow-md"
+            >
+              <Activity className="w-4 h-4 sm:w-5 sm:h-5" />
+              <span>Diagnostic</span>
             </Link>
             
             {auth.isMasterAdmin && (

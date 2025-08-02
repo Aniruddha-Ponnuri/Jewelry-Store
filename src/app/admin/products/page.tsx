@@ -61,17 +61,25 @@ export default function RobustAdminProducts() {
     }
 
     try {
+      console.log('📂 [ADMIN PRODUCTS] Loading categories...')
+      
       const { data, error } = await supabase
         .from('categories')
         .select('*')
         .order('name')
 
       if (error) {
-        console.error('Error loading categories:', error)
-        setError('Failed to load categories')
+        console.error('❌ [ADMIN PRODUCTS] Error loading categories:', {
+          message: error.message,
+          details: error.details,
+          hint: error.hint,
+          code: error.code
+        })
+        setError('Failed to load categories. Please refresh and try again.')
         return
       }
 
+      console.log('✅ [ADMIN PRODUCTS] Categories loaded successfully:', data?.length || 0, 'categories')
       setCategories(data || [])
       
       // Set default category if categories exist
@@ -79,8 +87,17 @@ export default function RobustAdminProducts() {
         setFormData(prev => ({ ...prev, category: data[0].name.toLowerCase() }))
       }
     } catch (error) {
-      console.error('Unexpected error loading categories:', error)
-      setError('Failed to load categories')
+      // Properly handle and log category loading errors
+      const errorDetails = {
+        message: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : undefined,
+        name: error instanceof Error ? error.name : typeof error,
+        errorType: typeof error,
+        timestamp: new Date().toISOString()
+      }
+      
+      console.error('❌ [ADMIN PRODUCTS] Unexpected error loading categories:', errorDetails)
+      setError('Failed to load categories. Please refresh and try again.')
     }
   }, [auth.isFullyAuthorized, auth.loading, supabase, formData.category])
 
@@ -93,6 +110,7 @@ export default function RobustAdminProducts() {
     try {
       setLoading(true)
       setError(null)
+      console.log('📦 [ADMIN PRODUCTS] Loading products...')
 
       const { data, error } = await supabase
         .from('products')
@@ -100,15 +118,30 @@ export default function RobustAdminProducts() {
         .order('created_at', { ascending: false })
 
       if (error) {
-        console.error('Error loading products:', error)
-        setError('Failed to load products')
+        console.error('❌ [ADMIN PRODUCTS] Error loading products:', {
+          message: error.message,
+          details: error.details,
+          hint: error.hint,
+          code: error.code
+        })
+        setError('Failed to load products. Please refresh and try again.')
         return
       }
 
+      console.log('✅ [ADMIN PRODUCTS] Products loaded successfully:', data?.length || 0, 'products')
       setProducts(data || [])
     } catch (error) {
-      console.error('Unexpected error loading products:', error)
-      setError('Failed to load products')
+      // Properly handle and log product loading errors
+      const errorDetails = {
+        message: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : undefined,
+        name: error instanceof Error ? error.name : typeof error,
+        errorType: typeof error,
+        timestamp: new Date().toISOString()
+      }
+      
+      console.error('❌ [ADMIN PRODUCTS] Unexpected error loading products:', errorDetails)
+      setError('Failed to load products. Please refresh and try again.')
     } finally {
       setLoading(false)
     }
@@ -125,30 +158,153 @@ export default function RobustAdminProducts() {
   // Handle image upload
   const handleImageUpload = async (file: File): Promise<string | null> => {
     if (!auth.isFullyAuthorized) {
-      console.error('Not authorized for image upload')
+      console.error('❌ [IMAGE UPLOAD] Not authorized for image upload')
+      setError('Not authorized to upload images')
+      return null
+    }
+
+    if (!file) {
+      console.error('❌ [IMAGE UPLOAD] No file provided')
+      setError('No file selected for upload')
+      return null
+    }
+
+    // Validate file type
+    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp']
+    if (!allowedTypes.includes(file.type)) {
+      console.error('❌ [IMAGE UPLOAD] Invalid file type:', file.type)
+      setError('Please select a valid image file (JPEG, PNG, or WebP)')
+      return null
+    }
+
+    // Validate file size (5MB limit)
+    const maxSize = 5 * 1024 * 1024 // 5MB in bytes
+    if (file.size > maxSize) {
+      console.error('❌ [IMAGE UPLOAD] File too large:', file.size)
+      setError('Image file size must be less than 5MB')
       return null
     }
 
     try {
       setUploading(true)
+      console.log('📤 [IMAGE UPLOAD] Starting upload for file:', file.name, 'Size:', file.size, 'Type:', file.type)
 
-      const fileExt = file.name.split('.').pop()
+      // Enhanced bucket checking with fallback
+      console.log('🗂️ [IMAGE UPLOAD] Checking if images bucket exists...')
+      
+      let imagesBucketExists = false
+      try {
+        const { data: buckets, error: bucketsError } = await supabase.storage.listBuckets()
+        
+        if (bucketsError) {
+          console.warn('⚠️ [IMAGE UPLOAD] Bucket listing failed, trying direct upload:', bucketsError.message)
+          // Don't fail here - sometimes listBuckets fails but upload still works
+          imagesBucketExists = true // Assume bucket exists and try upload
+        } else {
+          const imagesBucket = buckets?.find(bucket => bucket.name === 'images')
+          imagesBucketExists = !!imagesBucket
+          
+          if (imagesBucket) {
+            console.log('✅ [IMAGE UPLOAD] Images bucket found:', imagesBucket)
+          } else {
+            console.log('📋 [IMAGE UPLOAD] Available buckets:', buckets?.map(b => b.name) || [])
+          }
+        }
+      } catch (listError) {
+        console.warn('⚠️ [IMAGE UPLOAD] Bucket check failed, attempting direct upload:', listError)
+        imagesBucketExists = true // Try upload anyway
+      }
+      
+      if (!imagesBucketExists) {
+        console.error('❌ [IMAGE UPLOAD] Images bucket not found and bucket listing failed')
+        setError('Image storage not configured. Please run the storage setup script or contact administrator.')
+        return null
+      }
+
+      console.log('✅ [IMAGE UPLOAD] Proceeding with upload...')
+
+      const fileExt = file.name.split('.').pop()?.toLowerCase()
       const fileName = `${uuidv4()}.${fileExt}`
       const filePath = `products/${fileName}`
 
-      const { error: uploadError } = await supabase.storage
-        .from('images')
-        .upload(filePath, file)
-
-      if (uploadError) {
-        console.error('Image upload error:', uploadError)
-        throw uploadError
+      // Check if session is still valid before upload
+      const { data: { session }, error: sessionCheckError } = await supabase.auth.getSession()
+      if (sessionCheckError || !session) {
+        console.error('❌ [IMAGE UPLOAD] Session invalid before upload:', sessionCheckError?.message)
+        setError('Authentication session expired. Please refresh and try again.')
+        return null
       }
 
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from('images')
+        .upload(filePath, file, {
+          cacheControl: '3600',
+          upsert: false
+        })
+
+      if (uploadError) {
+        console.error('❌ [IMAGE UPLOAD] Supabase upload error:', {
+          message: uploadError.message,
+          error: uploadError
+        })
+        
+        // Handle specific error types
+        if (uploadError.message.includes('The resource already exists')) {
+          // Retry with a new filename
+          const retryFileName = `${uuidv4()}.${fileExt}`
+          const retryFilePath = `products/${retryFileName}`
+          
+          const { error: retryError } = await supabase.storage
+            .from('images')
+            .upload(retryFilePath, file, {
+              cacheControl: '3600',
+              upsert: false
+            })
+            
+          if (retryError) {
+            console.error('❌ [IMAGE UPLOAD] Retry upload failed:', retryError)
+            setError(`Upload failed: ${retryError.message}`)
+            return null
+          }
+          
+          console.log('✅ [IMAGE UPLOAD] Image uploaded successfully on retry:', retryFilePath)
+          return retryFilePath
+        }
+        
+        setError(`Upload failed: ${uploadError.message}`)
+        return null
+      }
+
+      console.log('✅ [IMAGE UPLOAD] Image uploaded successfully:', filePath, 'Data:', uploadData)
       return filePath
     } catch (error) {
-      console.error('Unexpected error uploading image:', error)
-      setError('Failed to upload image')
+      // Properly handle and log errors to prevent empty objects
+      const errorDetails = {
+        message: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : undefined,
+        name: error instanceof Error ? error.name : typeof error,
+        errorType: typeof error,
+        timestamp: new Date().toISOString()
+      }
+      
+      console.error('❌ [IMAGE UPLOAD] Unexpected error uploading image:', errorDetails)
+      
+      // Handle specific error types
+      if (error instanceof Error) {
+        if (error.message.includes('NetworkError') || error.message.includes('fetch')) {
+          console.error('Image upload error: Network issue detected')
+          setError('Network error during upload. Please check your connection and try again.')
+        } else if (error.message.includes('Authentication') || error.message.includes('session')) {
+          console.error('Image upload error: Authentication issue detected')
+          setError('Authentication error. Please refresh the page and try again.')
+        } else {
+          console.error(`Image upload error: ${error.message}`)
+          setError(`Upload error: ${error.message}`)
+        }
+      } else {
+        console.error('Image upload error: Non-Error object thrown:', String(error))
+        setError('An unexpected error occurred during upload. Please try again.')
+      }
       return null
     } finally {
       setUploading(false)
@@ -160,25 +316,39 @@ export default function RobustAdminProducts() {
     e.preventDefault()
     
     if (!auth.isFullyAuthorized) {
-      console.error('❌ [AdminProducts] Not authorized for product operations')
+      console.error('❌ [ADMIN PRODUCTS] Not authorized for product operations')
       setError('Not authorized to perform this action')
+      return
+    }
+
+    // Validate required fields
+    if (!formData.name.trim()) {
+      setError('Product name is required')
+      return
+    }
+    
+    if (!formData.price || isNaN(parseFloat(formData.price))) {
+      setError('Valid price is required')
       return
     }
 
     try {
       setUploading(true)
       setError(null)
+      console.log('💾 [ADMIN PRODUCTS] Starting product save operation...')
 
       let imagePath = formData.image_path
 
       // Upload image if selected
       if (imageFile) {
+        console.log('📤 [ADMIN PRODUCTS] Uploading image before saving product...')
         const uploadedPath = await handleImageUpload(imageFile)
         if (!uploadedPath) {
-          setError('Failed to upload image')
+          // Error is already set in handleImageUpload
           return
         }
         imagePath = uploadedPath
+        console.log('✅ [ADMIN PRODUCTS] Image uploaded successfully, path:', uploadedPath)
       }
 
       const productData = {
@@ -192,6 +362,12 @@ export default function RobustAdminProducts() {
         is_in_stock: formData.is_in_stock,
         image_path: imagePath || null
       }
+
+      console.log('💾 [ADMIN PRODUCTS] Saving product data:', {
+        operation: editingProduct ? 'UPDATE' : 'INSERT',
+        productId: editingProduct?.product_id,
+        productName: productData.name
+      })
 
       let result
       if (editingProduct) {
@@ -208,9 +384,25 @@ export default function RobustAdminProducts() {
       }
 
       if (result.error) {
-        console.error('Database error:', result.error)
-        throw result.error
+        console.error('❌ [ADMIN PRODUCTS] Database error:', {
+          message: result.error.message,
+          details: result.error.details,
+          hint: result.error.hint,
+          code: result.error.code
+        })
+        
+        // Handle specific database errors
+        if (result.error.code === '23505') {
+          setError('A product with this name already exists')
+        } else if (result.error.code === '23502') {
+          setError('Missing required field information')
+        } else {
+          setError(`Database error: ${result.error.message}`)
+        }
+        return
       }
+      
+      console.log('✅ [ADMIN PRODUCTS] Product saved successfully:', result.data?.[0])
       
       // Reset form and refresh data
       resetForm()
@@ -218,8 +410,30 @@ export default function RobustAdminProducts() {
       await loadProducts()
       
     } catch (error) {
-      console.error('❌ [AdminProducts] Unexpected error saving product:', error)
-      setError('Failed to save product')
+      // Properly handle and log product save errors
+      const errorDetails = {
+        message: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : undefined,
+        name: error instanceof Error ? error.name : typeof error,
+        errorType: typeof error,
+        operation: editingProduct ? 'UPDATE' : 'INSERT',
+        productName: formData.name,
+        timestamp: new Date().toISOString()
+      }
+      
+      console.error('❌ [ADMIN PRODUCTS] Unexpected error saving product:', errorDetails)
+      
+      if (error instanceof Error) {
+        if (error.message.includes('NetworkError') || error.message.includes('fetch')) {
+          setError('Network error while saving product. Please check your connection and try again.')
+        } else if (error.message.includes('Authentication') || error.message.includes('session')) {
+          setError('Authentication error. Please refresh the page and try again.')
+        } else {
+          setError(`Error saving product: ${error.message}`)
+        }
+      } else {
+        setError('An unexpected error occurred while saving the product. Please try again.')
+      }
     } finally {
       setUploading(false)
     }
@@ -228,7 +442,7 @@ export default function RobustAdminProducts() {
   // Handle product deletion with robust error handling
   const handleDelete = async (productId: string) => {
     if (!auth.isFullyAuthorized) {
-      console.error('Not authorized for deletion')
+      console.error('❌ [ADMIN PRODUCTS] Not authorized for deletion')
       setError('Not authorized to perform this action')
       return
     }
@@ -236,22 +450,65 @@ export default function RobustAdminProducts() {
     try {
       setDeletingProducts(prev => new Set(prev).add(productId))
       setError(null)
+      console.log('🗑️ [ADMIN PRODUCTS] Starting product deletion for ID:', productId)
 
-      const { error } = await supabase
+      // Check session before deletion
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession()
+      if (sessionError || !session) {
+        console.error('❌ [ADMIN PRODUCTS] Session invalid before deletion:', sessionError?.message)
+        setError('Authentication session expired. Please refresh and try again.')
+        return
+      }
+
+      const { error: deleteError } = await supabase
         .from('products')
         .delete()
         .eq('product_id', productId)
 
-      if (error) {
-        console.error('Delete error:', error)
-        throw error
+      if (deleteError) {
+        console.error('❌ [ADMIN PRODUCTS] Delete error:', {
+          message: deleteError.message,
+          details: deleteError.details,
+          hint: deleteError.hint,
+          code: deleteError.code
+        })
+        
+        // Handle specific delete errors
+        if (deleteError.code === '23503') {
+          setError('Cannot delete product: it may be referenced by other records')
+        } else {
+          setError(`Delete failed: ${deleteError.message}`)
+        }
+        return
       }
 
+      console.log('✅ [ADMIN PRODUCTS] Product deleted successfully:', productId)
       await loadProducts()
       
     } catch (error) {
-      console.error('Unexpected error deleting product:', error)
-      setError('Failed to delete product')
+      // Properly handle and log product deletion errors
+      const errorDetails = {
+        message: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : undefined,
+        name: error instanceof Error ? error.name : typeof error,
+        errorType: typeof error,
+        productId: productId,
+        timestamp: new Date().toISOString()
+      }
+      
+      console.error('❌ [ADMIN PRODUCTS] Unexpected error deleting product:', errorDetails)
+      
+      if (error instanceof Error) {
+        if (error.message.includes('NetworkError') || error.message.includes('fetch')) {
+          setError('Network error while deleting product. Please check your connection and try again.')
+        } else if (error.message.includes('Authentication') || error.message.includes('session')) {
+          setError('Authentication error. Please refresh the page and try again.')
+        } else {
+          setError(`Error deleting product: ${error.message}`)
+        }
+      } else {
+        setError('An unexpected error occurred while deleting the product. Please try again.')
+      }
     } finally {
       setDeletingProducts(prev => {
         const newSet = new Set(prev)

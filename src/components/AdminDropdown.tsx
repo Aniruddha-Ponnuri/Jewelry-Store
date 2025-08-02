@@ -10,7 +10,7 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Shield, Package, FolderOpen, Users, RefreshCw, ChevronDown } from 'lucide-react'
+import { Shield, Package, FolderOpen, Users, RefreshCw, ChevronDown, Activity } from 'lucide-react'
 import Link from 'next/link'
 
 export default function AdminDropdown() {
@@ -116,6 +116,19 @@ export default function AdminDropdown() {
                 <div className="flex flex-col">
                   <span className="text-sm font-medium">User Management</span>
                   <span className="text-xs text-gray-500">Manage admin access</span>
+                </div>
+                <Badge variant="outline" className="bg-purple-50 text-purple-700 border-purple-200 text-xs ml-auto">
+                  Master
+                </Badge>
+              </Link>
+            </DropdownMenuItem>
+            
+            <DropdownMenuItem asChild>
+              <Link href="/admin/diagnostic" className="flex items-center gap-3 cursor-pointer">
+                <Activity className="w-4 h-4 text-red-600" />
+                <div className="flex flex-col">
+                  <span className="text-sm font-medium">Diagnostic Center</span>
+                  <span className="text-xs text-gray-500">Debug & troubleshoot</span>
                 </div>
                 <Badge variant="outline" className="bg-purple-50 text-purple-700 border-purple-200 text-xs ml-auto">
                   Master

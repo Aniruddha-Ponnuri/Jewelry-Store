@@ -14,8 +14,8 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { AdminUser } from '@/types/database'
 import RobustAdminLayout from '@/components/RobustAdminLayout'
 import AdminDebug from '@/components/AdminDebug'
-import AdminUsersDebug from '@/components/AdminUsersDebug'
 import { Shield, RefreshCw, Users, Crown, UserPlus } from 'lucide-react'
+import Link from 'next/link'
 
 export default function RobustAdminUsersPage() {
   const auth = useRobustAuth({
@@ -145,6 +145,13 @@ export default function RobustAdminUsersPage() {
       return
     }
 
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    if (!emailRegex.test(newAdminEmail.trim())) {
+      setError('Please enter a valid email address format')
+      return
+    }
+
     try {
       setIsAddingAdmin(true)
       setError(null)
@@ -152,48 +159,79 @@ export default function RobustAdminUsersPage() {
 
       const email = newAdminEmail.trim().toLowerCase()
 
-      // Check if user is already an admin first
-      const { data: existingAdmin } = await supabase
-        .from('admin_users')
-        .select('user_id')
-        .eq('email', email)
-        .single()
-
-      if (existingAdmin) {
-        setError('User is already an admin')
-        return
-      }
-
-      // For now, we'll create the admin record without checking auth.users
-      // The user_id will need to be updated when they first log in
-      // This is a simplified approach that assumes the email exists
+      // First check if user exists in auth.users
+      console.log('🔍 [AdminUsers] Checking if user exists in auth.users...')
       
-      // Generate a temporary UUID for the user_id (this will be updated when they log in)
-      const tempUserId = crypto.randomUUID()
+      // Try to get user info from auth.users table (this is a common pattern)
+      // Note: We can't directly query auth.users, so we'll rely on the add_admin function
+      // to provide the appropriate error message
 
-      // Add user as admin
-      const { error: insertError } = await supabase
-        .from('admin_users')
-        .insert({
-          user_id: tempUserId, // Temporary - will be updated on first login
-          email: email,
-          role: 'admin',
-          is_active: true
-        })
+      // Use the proper add_admin RPC function which handles user verification
+      const { data: result, error: rpcError } = await supabase.rpc('add_admin', {
+        admin_email: email,
+        admin_role: 'admin'
+      })
 
-      if (insertError) {
-        console.error('❌ [AdminUsers] Error adding admin:', insertError)
-        setError(`Failed to add admin: ${insertError.message}`)
+      if (rpcError) {
+        console.error('❌ [AdminUsers] RPC error adding admin:', rpcError)
+        
+        // Provide more specific error messages
+        if (rpcError.message.includes('function') && rpcError.message.includes('does not exist')) {
+          setError('Admin functions not properly set up. Please run database setup scripts.')
+        } else if (rpcError.message.includes('permission')) {
+          setError('Insufficient permissions to add admin users.')
+        } else {
+          setError(`Failed to add admin: ${rpcError.message}`)
+        }
         return
       }
 
-      console.log('✅ [AdminUsers] Admin added successfully')
+      // Check if the result indicates an error
+      if (result && result.startsWith('Error:')) {
+        console.error('❌ [AdminUsers] Admin function returned error:', result)
+        
+        // Provide user-friendly error messages
+        if (result.includes('not found')) {
+          setError(`User with email "${email}" must register an account first before being made an admin.`)
+        } else if (result.includes('Only admins can add')) {
+          setError('You do not have permission to add admin users.')
+        } else if (result.includes('Only master admins')) {
+          setError('Only master admins can create other master admins.')
+        } else {
+          setError(result)
+        }
+        return
+      }
+
+      console.log('✅ [AdminUsers] Admin added successfully:', result)
       setNewAdminEmail('')
       await loadUsers()
       
     } catch (error) {
-      console.error('❌ [AdminUsers] Unexpected error adding admin:', error)
-      setError(`Failed to add admin user: ${error instanceof Error ? error.message : 'Unknown error'}`)
+      // Properly handle and log admin addition errors
+      const errorDetails = {
+        message: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : undefined,
+        name: error instanceof Error ? error.name : typeof error,
+        errorType: typeof error,
+        adminEmail: newAdminEmail,
+        timestamp: new Date().toISOString()
+      }
+      
+      console.error('❌ [AdminUsers] Unexpected error adding admin:', errorDetails)
+      
+      // Provide user-friendly error message
+      let userMessage = 'Failed to add admin user'
+      if (error instanceof Error) {
+        if (error.message.includes('network') || error.message.includes('fetch')) {
+          userMessage = 'Network error. Please check your connection and try again.'
+        } else if (error.message.includes('auth') || error.message.includes('session')) {
+          userMessage = 'Authentication error. Please refresh the page and try again.'
+        } else {
+          userMessage = `Failed to add admin: ${error.message}`
+        }
+      }
+      setError(userMessage)
     } finally {
       setIsAddingAdmin(false)
     }
@@ -212,18 +250,31 @@ export default function RobustAdminUsersPage() {
       setError(null)
       console.log('👥 [AdminUsers] Removing admin privileges:', userId)
 
-      // Remove from admin_users table
-      const { error } = await supabase
-        .from('admin_users')
-        .delete()
-        .eq('user_id', userId)
-
-      if (error) {
-        console.error('❌ [AdminUsers] Error removing admin:', error)
-        throw error
+      // Find the user's email first
+      const userToRemove = users.find(u => u.user_id === userId)
+      if (!userToRemove) {
+        throw new Error('User not found')
       }
 
-      console.log('✅ [AdminUsers] Admin privileges removed successfully')
+      // Use the proper remove_admin RPC function
+      const { data: result, error: rpcError } = await supabase.rpc('remove_admin', {
+        admin_email: userToRemove.email
+      })
+
+      if (rpcError) {
+        console.error('❌ [AdminUsers] RPC error removing admin:', rpcError)
+        setError(`Failed to remove admin: ${rpcError.message}`)
+        return
+      }
+
+      // Check if the result indicates an error
+      if (result && result.startsWith('Error:')) {
+        console.error('❌ [AdminUsers] Remove admin function returned error:', result)
+        setError(result)
+        return
+      }
+
+      console.log('✅ [AdminUsers] Admin privileges removed successfully:', result)
       await loadUsers()
       
     } catch (error) {
@@ -271,8 +322,25 @@ export default function RobustAdminUsersPage() {
       {/* Debug Panel */}
       <AdminDebug />
       
-      {/* Admin Users Specific Debug */}
-      <AdminUsersDebug />
+      {/* Link to Full Diagnostic */}
+      <Card className="mb-6 bg-gradient-to-r from-gray-50 to-blue-50 border-gray-200">
+        <CardContent className="p-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="font-semibold text-gray-800">Advanced Diagnostics</h3>
+              <p className="text-sm text-gray-600">
+                For comprehensive debugging and troubleshooting, visit the diagnostic center
+              </p>
+            </div>
+            <Link href="/admin/diagnostic">
+              <Button variant="outline" className="flex items-center gap-2">
+                <Shield className="w-4 h-4" />
+                Open Diagnostic Center
+              </Button>
+            </Link>
+          </div>
+        </CardContent>
+      </Card>
       
       {/* Error Alert */}
       {error && (

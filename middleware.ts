@@ -31,7 +31,16 @@ export async function middleware(request: NextRequest) {
     const { data: { session }, error } = await supabase.auth.getSession()
     
     if (error) {
-      console.error('Middleware session error:', error)
+      // Handle specific refresh token errors in middleware
+      if (error.message.includes('refresh_token_not_found') || 
+          error.message.includes('Invalid Refresh Token') ||
+          error.message.includes('Refresh Token Not Found')) {
+        console.warn('Middleware: Refresh token error detected, clearing session')
+        // Don't redirect to login, just continue without authentication
+        return supabaseResponse
+      } else {
+        console.error('Middleware session error:', error.message)
+      }
     }
 
     let currentUser = session?.user

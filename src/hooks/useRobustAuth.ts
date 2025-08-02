@@ -66,10 +66,23 @@ export function useRobustAuth(options: RobustAuthOptions = {}) {
     }
 
     try {
-      // Step 1: Verify session
+      // Step 1: Verify session with refresh token handling
       const { data: { session }, error: sessionError } = await supabase.auth.getSession()
       
       if (sessionError) {
+        // Handle specific refresh token errors
+        if (sessionError.message.includes('refresh_token_not_found') || 
+            sessionError.message.includes('Invalid Refresh Token') ||
+            sessionError.message.includes('Refresh Token Not Found')) {
+          console.warn('🔐 [ROBUST AUTH] 🔄 Refresh token expired, clearing session')
+          // Clear the session and return unauthenticated state
+          try {
+            await supabase.auth.signOut()
+          } catch (signOutError) {
+            console.warn('🔐 [ROBUST AUTH] Warning: Failed to sign out during token refresh error:', signOutError)
+          }
+          return newState
+        }
         throw new Error(`Session error: ${sessionError.message}`)
       }
 
@@ -192,28 +205,64 @@ export function useRobustAuth(options: RobustAuthOptions = {}) {
     } = supabase.auth.onAuthStateChange(async (event, session) => {
       console.log('🔐 [ROBUST AUTH] 📡 Auth state change:', event, session?.user?.email)
       
-      // Clear cache on sign out
-      if (event === 'SIGNED_OUT') {
-        setState({
-          isAuthenticated: false,
-          isAdmin: false,
-          isMasterAdmin: false,
-          user: null,
-          loading: false,
-          error: null,
-          sessionValid: false,
-          lastVerification: Date.now()
-        })
-        return
-      }
+      try {
+        // Handle different auth events
+        if (event === 'SIGNED_OUT') {
+          console.log('🔐 [ROBUST AUTH] 👋 User signed out, clearing state')
+          setState({
+            isAuthenticated: false,
+            isAdmin: false,
+            isMasterAdmin: false,
+            user: null,
+            loading: false,
+            error: null,
+            sessionValid: false,
+            lastVerification: Date.now()
+          })
+          return
+        }
 
-      // Refresh auth state on other events
-      if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
-        await updateAuthState()
+        // Handle token refresh errors
+        if (event === 'TOKEN_REFRESHED' && !session) {
+          console.warn('🔐 [ROBUST AUTH] ⚠️ Token refresh failed, no session returned')
+          setState(prev => ({
+            ...prev,
+            sessionValid: false,
+            error: 'Session expired, please sign in again'
+          }))
+          return
+        }
+
+        // Handle general auth errors
+        if (event === 'TOKEN_REFRESHED' && session && !session.user) {
+          console.warn('🔐 [ROBUST AUTH] ⚠️ Token refresh returned session without user')
+          setState(prev => ({
+            ...prev,
+            sessionValid: false,
+            error: 'Authentication error, please sign in again'
+          }))
+          return
+        }
+
+        // Refresh auth state on successful events
+        if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+          console.log('🔐 [ROBUST AUTH] 🔄 Refreshing auth state after event:', event)
+          await updateAuthState()
+        }
+      } catch (error) {
+        console.error('🔐 [ROBUST AUTH] ❌ Error handling auth state change:', error)
+        setState(prev => ({
+          ...prev,
+          error: 'Authentication error occurred',
+          loading: false
+        }))
       }
     })
 
-    return () => subscription.unsubscribe()
+    return () => {
+      console.log('🔐 [ROBUST AUTH] 🧹 Cleaning up auth listener')
+      subscription.unsubscribe()
+    }
   }, [updateAuthState])
 
   return {
