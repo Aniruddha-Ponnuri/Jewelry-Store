@@ -379,7 +379,7 @@ export async function secureRegister(
     }
 
     // Sanitize inputs
-    const sanitizedEmail = inputValidator.sanitizeInput(email).toLowerCase()
+    const sanitizedEmail = String(inputValidator.sanitizeInput(email)).toLowerCase()
     const sanitizedFullName = fullName ? inputValidator.sanitizeInput(fullName) : undefined
 
     const supabase = await createClient()
