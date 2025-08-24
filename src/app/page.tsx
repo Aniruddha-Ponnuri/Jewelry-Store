@@ -95,6 +95,9 @@ export default async function HomePage() {
       }))
     : fallbackCategories
 
+  // Pick a single random category for consistent UX in the hero buttons
+  const randomCategory = categories[Math.floor(Math.random() * categories.length)]
+
   // Helper function to get emoji for category
   function getEmojiForCategory(categoryName: string): string {
     const emojiMap: { [key: string]: string } = {
@@ -132,8 +135,8 @@ export default async function HomePage() {
               </Link>
             </Button>
             <Button variant="outline" size="lg" asChild className="touch-target">
-              <Link href={`/products?category=${categories[Math.floor(Math.random() * categories.length)].name.toLowerCase()}`} className="flex items-center justify-center">
-              <span className="text-sm sm:text-base">View {categories[Math.floor(Math.random() * categories.length)].name}</span>
+              <Link href={`/products?category=${randomCategory.name.toLowerCase()}`} className="flex items-center justify-center">
+              <span className="text-sm sm:text-base">View {randomCategory.name}</span>
               </Link>
             </Button>
           </div>

@@ -57,7 +57,7 @@ export default async function ProductsPage() {
 
       {/* Products Grid */}
       <Suspense fallback={<ProductGridSkeleton />}>
-        {products && products.length > 0 ? (
+        {Array.isArray(products) && products.length > 0 ? (
           <>
             {/* Results Count */}
             <div className="mb-4 sm:mb-6">

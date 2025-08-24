@@ -1,0 +1,34 @@
+import { z } from 'zod'
+
+// Centralized environment variable validation to ensure production readiness
+const schema = z.object({
+  NEXT_PUBLIC_SITE_URL: z
+    .string()
+    .url()
+    .catch('https://jewelry-store-swart.vercel.app'),
+  NEXT_PUBLIC_SUPABASE_URL: z.string().url(),
+  NEXT_PUBLIC_SUPABASE_ANON_KEY: z.string().min(1),
+  // Optional secret used to protect the on-demand revalidation API
+  REVALIDATE_SECRET: z.string().optional(),
+})
+
+const parsed = schema.safeParse(process.env)
+
+if (!parsed.success) {
+  // Fail fast on server during build or runtime if critical env is missing
+  // Do not throw on the client to avoid breaking hydration
+  if (typeof window === 'undefined') {
+    console.error('[ENV] Invalid environment configuration:', parsed.error.flatten())
+  }
+}
+
+export const env = (parsed.success
+  ? parsed.data
+  : {
+      NEXT_PUBLIC_SITE_URL:
+        process.env.NEXT_PUBLIC_SITE_URL || 'https://jewelry-store-swart.vercel.app',
+      NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL || '',
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '',
+      REVALIDATE_SECRET: process.env.REVALIDATE_SECRET,
+    }) as z.infer<typeof schema>
+

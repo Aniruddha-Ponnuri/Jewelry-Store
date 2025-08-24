@@ -271,6 +271,25 @@ jewelry-website/
 - **Touch-friendly**: Larger touch targets for mobile interaction
 - **Adaptive layouts**: Different layouts for mobile and desktop
 
+## 🔒 Production Readiness
+
+- Centralized env validation at `src/lib/env.ts` (ensure NEXT_PUBLIC_SITE_URL, NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY, and optional REVALIDATE_SECRET).
+- SEO: `src/app/robots.ts` and `src/app/sitemap.ts`.
+- Health check: `src/app/api/health/route.ts`.
+- Maintenance page: `src/app/maintenance/page.ts` (middleware can redirect here).
+- On-demand revalidation: `POST /api/revalidate` requires `x-revalidate-secret` header (or `?secret=`) in production.
+- Hardened Next config: security headers, image formats, and caching.
+
+Revalidation example:
+
+```bash
+curl -X POST \
+  -H "Content-Type: application/json" \
+  -H "x-revalidate-secret: $REVALIDATE_SECRET" \
+  -d '{"path":"/products"}' \
+  "$NEXT_PUBLIC_SITE_URL/api/revalidate"
+```
+
 ## 🚀 Deployment
 
 ### Vercel Deployment (Recommended)

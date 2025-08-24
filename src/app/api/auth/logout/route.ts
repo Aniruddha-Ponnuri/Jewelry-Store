@@ -4,7 +4,7 @@ import { cookies } from 'next/headers'
 
 export async function POST() {
   try {
-    console.log('API logout route called')
+    if (process.env.NODE_ENV !== 'production') console.log('API logout route called')
     
     const supabase = await createLogoutClient()
     const cookieStore = await cookies()
@@ -22,7 +22,7 @@ export async function POST() {
     
     // Get all current cookies to identify Supabase auth cookies
     const allCookies = cookieStore.getAll()
-    console.log('Found cookies:', allCookies.map(c => c.name))
+    if (process.env.NODE_ENV !== 'production') console.log('Found cookies:', allCookies.map(c => c.name))
     
     // Common Supabase auth cookie patterns
     const supabaseCookiePatterns = [
@@ -41,7 +41,7 @@ export async function POST() {
       )
       
       if (isSupabaseCookie) {
-        console.log(`Clearing cookie: ${cookie.name}`)
+        if (process.env.NODE_ENV !== 'production') console.log(`Clearing cookie: ${cookie.name}`)
         response.cookies.set(cookie.name, '', {
           maxAge: 0,
           path: '/',
@@ -62,7 +62,7 @@ export async function POST() {
     ]
     
     commonCookieNames.forEach(cookieName => {
-      console.log(`Explicitly clearing cookie: ${cookieName}`)
+      if (process.env.NODE_ENV !== 'production') console.log(`Explicitly clearing cookie: ${cookieName}`)
       response.cookies.set(cookieName, '', {
         maxAge: 0,
         path: '/',
@@ -72,7 +72,7 @@ export async function POST() {
       })
     })
     
-    console.log(`API logout completed. Cleared ${clearedCookies} auth cookies`)
+    if (process.env.NODE_ENV !== 'production') console.log(`API logout completed. Cleared ${clearedCookies} auth cookies`)
     return response
   } catch (error) {
     console.error('Server logout error:', error)

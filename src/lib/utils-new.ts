@@ -21,7 +21,9 @@ export function formatDate(date: string): string {
   }).format(new Date(date))
 }
 
+import { env } from '@/lib/env'
+
 export function getPublicImageUrl(path: string | null) {
   if (!path) return null
-  return `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/product_images/${path}`
+  return `${env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/product_images/${path}`
 }

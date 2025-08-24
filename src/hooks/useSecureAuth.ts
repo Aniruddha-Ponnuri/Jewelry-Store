@@ -274,10 +274,14 @@ export function useSecureAuth(config: Partial<SecureAuthConfig> = {}): SecureAut
             }
           }
         } else {
-          secureLogger.warn('Admin check failed', adminError)
+          secureLogger.warn('Admin check failed', { 
+            error: adminError?.message || 'Unknown admin check error' 
+          })
         }
       } catch (adminError) {
-        secureLogger.error('Error checking admin status', adminError)
+        secureLogger.error('Error checking admin status', { 
+          error: adminError instanceof Error ? adminError.message : 'Unknown error' 
+        })
       }
       
       if (signal.aborted) return {}
@@ -328,7 +332,9 @@ export function useSecureAuth(config: Partial<SecureAuthConfig> = {}): SecureAut
       if (signal.aborted) return {}
       
       const errorMessage = error instanceof Error ? error.message : 'Authentication error'
-      secureLogger.error('Auth verification failed', error)
+      secureLogger.error('Auth verification failed', { 
+        error: errorMessage 
+      })
       
       // Retry logic
       if (retryCount < finalConfig.maxRetries && !errorMessage.includes('required')) {
@@ -432,7 +438,9 @@ export function useSecureAuth(config: Partial<SecureAuthConfig> = {}): SecureAut
       return { success: true }
       
     } catch (error) {
-      secureLogger.error('Sign-in error', error)
+      secureLogger.error('Sign-in error', { 
+        error: error instanceof Error ? error.message : 'Unknown sign-in error' 
+      })
       return { success: false, error: 'An unexpected error occurred' }
     }
   }, [updateAuthState])
@@ -469,7 +477,9 @@ export function useSecureAuth(config: Partial<SecureAuthConfig> = {}): SecureAut
       router.push(finalConfig.logoutRedirect)
       
     } catch (error) {
-      secureLogger.error('Sign-out error', error)
+      secureLogger.error('Sign-out error', { 
+        error: error instanceof Error ? error.message : 'Unknown sign-out error' 
+      })
       // Force redirect even on error
       router.push(finalConfig.logoutRedirect)
     }
@@ -503,7 +513,9 @@ export function useSecureAuth(config: Partial<SecureAuthConfig> = {}): SecureAut
         isMasterAdmin: Boolean(masterResult),
       })
     } catch (error) {
-      secureLogger.error('Failed to refresh admin status', error)
+      secureLogger.error('Failed to refresh admin status', { 
+        error: error instanceof Error ? error.message : 'Unknown admin refresh error' 
+      })
     }
   }, [state.user])
 

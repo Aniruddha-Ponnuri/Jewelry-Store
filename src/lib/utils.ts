@@ -21,8 +21,10 @@ export function formatDate(date: string): string {
   }).format(new Date(date))
 }
 
+import { env } from '@/lib/env'
+
 export function getPublicImageUrl(path: string | null) {
   if (!path) return null
-  // Use 'images' bucket to match the upload bucket
-  return `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/images/${path}`
+  // Standardize to product_images bucket for consistency
+  return `${env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/product_images/${path}`
 }

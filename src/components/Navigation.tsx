@@ -18,29 +18,30 @@ export default function Navigation() {
   // Use AuthContext as primary source - it's more reliable
   const isAuthenticated = !!user
 
-  // Enhanced debug logging
-  console.log('🧭 [NAVIGATION] Auth status:', {
-    timestamp: new Date().toISOString(),
-    user: user ? {
-      id: user.id,
-      email: user.email
-    } : null,
-    isAdmin,
-    isMasterAdmin,
-    loading,
-    userType: user ? (isMasterAdmin ? 'Master Admin' : isAdmin ? 'Admin' : 'Regular User') : 'Not Logged In'
-  })
+  // Reduce noisy logs in production
+  if (process.env.NODE_ENV !== 'production') {
+    console.log('🧭 [NAVIGATION] Auth status:', {
+      timestamp: new Date().toISOString(),
+      user: user ? {
+        id: user.id,
+        email: user.email
+      } : null,
+      isAdmin,
+      isMasterAdmin,
+      loading,
+      userType: user ? (isMasterAdmin ? 'Master Admin' : isAdmin ? 'Admin' : 'Regular User') : 'Not Logged In'
+    })
 
-  // Enhanced debug logging
-  console.log('🔍 [Navigation] Detailed Auth status:', {
-    user: user?.email,
-    isAuthenticated,
-    isAdmin,
-    loading,
-    userObject: user,
-    authSource: 'AuthContext-Primary',
-    timestamp: new Date().toISOString()
-  })
+    console.log('🔍 [Navigation] Detailed Auth status:', {
+      user: user?.email,
+      isAuthenticated,
+      isAdmin,
+      loading,
+      userObject: user,
+      authSource: 'AuthContext-Primary',
+      timestamp: new Date().toISOString()
+    })
+  }
 
   const handleMobileSignOut = async () => {
     setIsMobileLoggingOut(true)
@@ -81,7 +82,7 @@ export default function Navigation() {
     </>
   )
   return (
-    <header className="sticky top-0 z-50 w-full border-b bg-white shadow-sm">
+    <header className="sticky top-0 z-50 w-full border-b bg-white shadow-sm" role="banner">
       <div className="container mx-auto px-4 max-w-full overflow-hidden">
         <div className="flex h-16 items-center justify-between min-w-0">
           <div className="flex items-center">

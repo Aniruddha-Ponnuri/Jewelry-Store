@@ -44,6 +44,19 @@ export default function ResetPassword() {
   
   const accessToken = searchParams.get('access_token')
   const refreshToken = searchParams.get('refresh_token')
+  
+  // Security: prevent token exposure via referrer
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const m = document.createElement('meta')
+      m.name = 'referrer'
+      m.content = 'no-referrer'
+      document.head.appendChild(m)
+      return () => {
+        document.head.removeChild(m)
+      }
+    }
+  }, [])
 
   useEffect(() => {
     if (state.success) {

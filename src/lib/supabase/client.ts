@@ -18,7 +18,7 @@ export function createClient() {
               try {
                 return localStorage.getItem(key)
               } catch (error) {
-                console.warn('Error reading from localStorage:', error)
+                if (process.env.NODE_ENV !== 'production') console.warn('Error reading from localStorage:', error)
                 return null
               }
             }
@@ -29,7 +29,7 @@ export function createClient() {
               try {
                 localStorage.setItem(key, value)
               } catch (error) {
-                console.warn('Error writing to localStorage:', error)
+                if (process.env.NODE_ENV !== 'production') console.warn('Error writing to localStorage:', error)
               }
             }
           },
@@ -38,7 +38,7 @@ export function createClient() {
               try {
                 localStorage.removeItem(key)
               } catch (error) {
-                console.warn('Error removing from localStorage:', error)
+                if (process.env.NODE_ENV !== 'production') console.warn('Error removing from localStorage:', error)
               }
             }
           }

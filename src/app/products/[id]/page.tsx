@@ -5,9 +5,43 @@ import { Badge } from '@/components/ui/badge'
 import { Bookmark, ShoppingBag, ArrowLeft } from 'lucide-react'
 import Link from 'next/link'
 import { getPublicImageUrl } from '@/lib/utils'
+import { Metadata } from 'next'
+import { env } from '@/lib/env'
 
 interface PageProps {
   params: Promise<{ id: string }>
+}
+
+export async function generateMetadata(props: PageProps): Promise<Metadata> {
+  const supabase = await createClient()
+  const { id } = await props.params
+  const { data: product } = await supabase
+    .from('products')
+    .select('name, description, image_path')
+    .eq('product_id', id)
+    .single()
+
+  const title = product?.name ? `${product.name} | SilverPalace` : 'Product | SilverPalace'
+  const description = product?.description || 'Discover our exquisite silver jewelry.'
+  const images = product?.image_path ? [{ url: `${env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/product_images/${product.image_path}` }] : []
+
+  return {
+    title,
+    description,
+    alternates: { canonical: `${env.NEXT_PUBLIC_SITE_URL}/products/${id}` },
+    openGraph: {
+      title,
+      description,
+      url: `${env.NEXT_PUBLIC_SITE_URL}/products/${id}`,
+      images,
+      type: 'product',
+    },
+    twitter: {
+      card: images.length ? 'summary_large_image' : 'summary',
+      title,
+      description,
+    },
+  }
 }
 
 export default async function ProductDetail(props: PageProps) {
@@ -63,8 +97,7 @@ export default async function ProductDetail(props: PageProps) {
               className="object-cover transition-transform duration-300 hover:scale-105"
               sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 40vw"
               priority={true}
-              placeholder="blur"
-              blurDataURL="data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAYEBQYFBAYGBQYHBwYIChAKCgkJChQODwwQFxQYGBcUFhYaHSUfGhsjHBYWICwgIyYnKSopGR8tMC0oMCUoKSj/2wBDAQcHBwoIChMKChMoGhYaKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCj/wAARCAABAAEDASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAv/xAAUEAEAAAAAAAAAAAAAAAAAAAAA/8QAFQEBAQAAAAAAAAAAAAAAAAAAAAX/xAAUEQEAAAAAAAAAAAAAAAAAAAAA/9oADAMBAAIRAxEAPwCdABmX/9k="
+              placeholder="empty"
             />
           ) : (
             <div className="bg-gray-200 border-2 border-dashed rounded-xl w-full h-full flex items-center justify-center">

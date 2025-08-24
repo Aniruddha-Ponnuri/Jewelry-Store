@@ -14,8 +14,10 @@ const inter = Inter({
   preload: true,
 })
 
+import { env } from '@/lib/env'
+
 export const metadata: Metadata = {
-  metadataBase: new URL('https://jewelry-store-swart.vercel.app'),
+  metadataBase: new URL(env.NEXT_PUBLIC_SITE_URL),
   title: 'SilverPalace - Premium Silver Jewelry Collection',
   description: 'Discover our exquisite collection of fine silver jewelry, rings, necklaces, and precious gems crafted by Indian artisans.',
   keywords: 'silver jewelry, indian jewelry, rings, necklaces, earrings, bracelets, handcrafted',
@@ -41,7 +43,7 @@ export const metadata: Metadata = {
   openGraph: {
     type: 'website',
     locale: 'en_IN',
-    url: 'https://jewelry-store-swart.vercel.app',
+    url: env.NEXT_PUBLIC_SITE_URL,
     title: 'SilverPalace - Premium Silver Jewelry Collection',
     description: 'Discover our exquisite collection of fine silver jewelry, rings, necklaces, and precious gems crafted by Indian artisans.',
     siteName: 'SilverPalace',
@@ -52,7 +54,7 @@ export const metadata: Metadata = {
     description: 'Discover our exquisite collection of fine silver jewelry, rings, necklaces, and precious gems crafted by Indian artisans.',
   },
   alternates: {
-    canonical: 'https://jewelry-store-swart.vercel.app',
+    canonical: env.NEXT_PUBLIC_SITE_URL,
   },
 }
 
@@ -79,6 +81,7 @@ export default function RootLayout({
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link rel="dns-prefetch" href="https://fonts.googleapis.com" />
+        <meta httpEquiv="x-dns-prefetch-control" content="on" />
       </head>
       <body className={`${inter.className} antialiased`} suppressHydrationWarning>
         <AuthProvider>

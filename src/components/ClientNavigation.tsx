@@ -21,9 +21,13 @@ export default function ClientNavigation() {
   const handleSignOut = async () => {
     setIsLoggingOut(true)
     try {
-      console.log('Starting logout process from dropdown...')
+      if (process.env.NODE_ENV !== 'production') {
+        console.log('Starting logout process from dropdown...')
+      }
       await signOut()
-      console.log('Logout completed successfully')
+      if (process.env.NODE_ENV !== 'production') {
+        console.log('Logout completed successfully')
+      }
     } catch (error) {
       console.error('Dropdown logout error:', error)
       // Force reload as fallback
@@ -47,7 +51,7 @@ export default function ClientNavigation() {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" className="relative h-8 w-8 rounded-full">
+        <Button variant="ghost" className="relative h-8 w-8 rounded-full" aria-label="Account menu">
           <Avatar className="h-8 w-8">
             <AvatarFallback className="bg-gradient-to-r from-amber-500 to-orange-500 text-white">
               {user.email?.charAt(0).toUpperCase()}
