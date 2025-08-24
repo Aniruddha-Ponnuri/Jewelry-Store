@@ -195,10 +195,6 @@ export async function secureLogin(
     const { data, error } = await supabase.auth.signInWithPassword({
       email: sanitizedEmail,
       password,
-      options: {
-        // Set session persistence based on remember me
-        persistSession: remember !== false,
-      }
     })
 
     // Record attempt for rate limiting
