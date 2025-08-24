@@ -279,7 +279,7 @@ export async function secureLogin(
       data: {
         user: {
           id: data.user.id,
-          email: data.user.email,
+          email: data.user.email || '',
           emailConfirmed: !!data.user.email_confirmed_at
         },
         redirectTo: safeRedirectTo
