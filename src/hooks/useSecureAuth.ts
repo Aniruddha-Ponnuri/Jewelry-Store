@@ -406,7 +406,7 @@ export function useSecureAuth(config: Partial<SecureAuthConfig> = {}): SecureAut
       // Attempt sign in
       const supabase = createClient()
       const { data, error } = await supabase.auth.signInWithPassword({
-        email: inputValidator.sanitizeInput(email),
+        email: String(inputValidator.sanitizeInput(email)),
         password,
       })
       
