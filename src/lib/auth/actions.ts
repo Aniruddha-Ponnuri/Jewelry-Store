@@ -180,7 +180,7 @@ export async function secureLogin(
     }
 
     // Sanitize inputs
-    const sanitizedEmail = inputValidator.sanitizeInput(email).toLowerCase()
+    const sanitizedEmail = String(inputValidator.sanitizeInput(email)).toLowerCase()
     
     // Create Supabase client
     const supabase = await createClient()
