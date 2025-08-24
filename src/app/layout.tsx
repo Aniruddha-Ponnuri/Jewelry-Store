@@ -7,9 +7,10 @@ import Footer from '@/components/Footer'
 import { Toaster } from 'sonner'
 import './globals.css'
 
-const inter = Inter({ 
+const inter = Inter({
   subsets: ['latin'],
   display: 'swap', // Optimize font loading
+  adjustFontFallback: false, // Disable font fallback adjustment
   preload: true,
 })
 

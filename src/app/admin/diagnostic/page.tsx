@@ -25,7 +25,15 @@ export default function AdminDiagnosticPage() {
   })
 
   const [activeView, setActiveView] = useState('overview')
-  const [comprehensiveTestResults, setComprehensiveTestResults] = useState<any[]>([])
+
+interface TestResult {
+  name: string;
+  status: 'testing' | 'success' | 'error' | 'warning';
+  message: string;
+  details?: Record<string, unknown>;
+}
+
+  const [comprehensiveTestResults, setComprehensiveTestResults] = useState<TestResult[]>([])
   const [comprehensiveTesting, setComprehensiveTesting] = useState(false)
   const supabase = createClient()
 
@@ -349,7 +357,7 @@ export default function AdminDiagnosticPage() {
   function ComprehensiveTestView() {
     const runComprehensiveTests = useCallback(async () => {
       setComprehensiveTesting(true)
-      const results: any[] = []
+      const results: TestResult[] = []
 
       // Test 1: Authentication
       try {
@@ -568,7 +576,7 @@ export default function AdminDiagnosticPage() {
       setComprehensiveTestResults([...results])
 
       setComprehensiveTesting(false)
-    }, [auth, supabase])
+    }, [])
 
     const getTestIcon = (testName: string) => {
       if (testName.includes('Authentication')) return <Shield className="w-4 h-4" />
