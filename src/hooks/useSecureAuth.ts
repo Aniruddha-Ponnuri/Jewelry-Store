@@ -288,7 +288,8 @@ export function useSecureAuth(config: Partial<SecureAuthConfig> = {}): SecureAut
       
       // Step 3: Calculate security metrics
       const now = Date.now()
-      const sessionAge = session.issued_at ? now - (session.issued_at * 1000) : 0
+      // Approximate session age using expires_at if available
+      const sessionAge = session.expires_at ? Math.max(0, (Date.now() / 1000 - session.expires_at + (60 * 60))) * 1000 : 0
       const securityScore = calculateSecurityScore(session, isAdmin, sessionAge)
       
       const newState: Partial<SecureAuthState> = {
