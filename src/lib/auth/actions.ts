@@ -123,14 +123,17 @@ export async function secureLogin(
     // Rate limiting check
     const clientId = await getClientIdentifier()
     if (!rateLimiter.checkLimit(clientId)) {
-      secureLogger.security({
-        type: 'RATE_LIMIT',
-        details: {
-          email: inputValidator.sanitizeInput(email),
-          clientId,
-          action: 'login'
-        }
-      })
+      secureLogger.security(
+        {
+          type: 'RATE_LIMIT',
+          details: {
+            email: inputValidator.sanitizeInput(email),
+            clientId,
+            action: 'login'
+          }
+        },
+        await headers()
+      )
       
       return {
         success: false,
@@ -146,13 +149,16 @@ export async function secureLogin(
     if (csrfToken) {
       const isValidCSRF = await csrfProtection.validateToken(csrfToken)
       if (!isValidCSRF) {
-        secureLogger.security({
-          type: 'CSRF_VIOLATION',
-          details: {
-            email: inputValidator.sanitizeInput(email),
-            action: 'login'
-          }
-        })
+        secureLogger.security(
+          {
+            type: 'CSRF_VIOLATION',
+            details: {
+              email: inputValidator.sanitizeInput(email),
+              action: 'login'
+            }
+          },
+          await headers()
+        )
         
         return {
           success: false,
