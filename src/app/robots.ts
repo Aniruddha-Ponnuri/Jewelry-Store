@@ -1,17 +1,15 @@
 import type { MetadataRoute } from 'next'
 
+// Block all web crawling
 export default function robots(): MetadataRoute.Robots {
-  const base = process.env.NEXT_PUBLIC_SITE_URL || 'https://jewelry-store-swart.vercel.app'
   return {
     rules: [
       {
         userAgent: '*',
-        allow: '/',
-        disallow: ['/admin', '/api', '/auth', '/login?*', '/register?*'],
+        disallow: '/',
       },
     ],
-    sitemap: `${base}/sitemap.xml`,
-    host: base,
+    // No sitemap provided when crawling is disallowed
   }
 }
 
