@@ -138,8 +138,7 @@ export async function secureLogin(
             clientId,
             action: 'login'
           }
-        },
-        hdrs
+        }
       )
       
       return {
@@ -170,8 +169,7 @@ export async function secureLogin(
               email: inputValidator.sanitizeInput(email),
               action: 'login'
             }
-          },
-          hdrs
+          }
         )
         
         return {
