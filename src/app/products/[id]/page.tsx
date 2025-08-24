@@ -34,7 +34,6 @@ export async function generateMetadata(props: PageProps): Promise<Metadata> {
       description,
       url: `${env.NEXT_PUBLIC_SITE_URL}/products/${id}`,
       images,
-      type: 'product',
     },
     twitter: {
       card: images.length ? 'summary_large_image' : 'summary',
