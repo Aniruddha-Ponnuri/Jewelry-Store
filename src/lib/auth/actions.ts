@@ -123,16 +123,23 @@ export async function secureLogin(
     // Rate limiting check
     const clientId = await getClientIdentifier()
     if (!rateLimiter.checkLimit(clientId)) {
+      const hdrs = await headers()
+      const forwarded = hdrs.get('x-forwarded-for')
+      const real = hdrs.get('x-real-ip')
+      const ua = hdrs.get('user-agent') || 'unknown'
+      const ip = forwarded ? forwarded.split(',')[0].trim() : (real || 'unknown')
       secureLogger.security(
         {
           type: 'RATE_LIMIT',
+          ip,
+          userAgent: ua,
           details: {
             email: inputValidator.sanitizeInput(email),
             clientId,
             action: 'login'
           }
         },
-        await headers()
+        hdrs
       )
       
       return {
@@ -149,15 +156,22 @@ export async function secureLogin(
     if (csrfToken) {
       const isValidCSRF = await csrfProtection.validateToken(csrfToken)
       if (!isValidCSRF) {
+        const hdrs = await headers()
+        const forwarded = hdrs.get('x-forwarded-for')
+        const real = hdrs.get('x-real-ip')
+        const ua = hdrs.get('user-agent') || 'unknown'
+        const ip = forwarded ? forwarded.split(',')[0].trim() : (real || 'unknown')
         secureLogger.security(
           {
             type: 'CSRF_VIOLATION',
+            ip,
+            userAgent: ua,
             details: {
               email: inputValidator.sanitizeInput(email),
               action: 'login'
             }
           },
-          await headers()
+          hdrs
         )
         
         return {
