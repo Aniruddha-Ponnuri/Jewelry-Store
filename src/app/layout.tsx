@@ -2,6 +2,7 @@ import { Metadata, Viewport } from 'next'
 import { Inter } from 'next/font/google'
 import { AuthProvider } from '@/contexts/AuthContext'
 import { AuthSessionProvider } from '@/components/AuthSessionProvider'
+import { KeepAliveProvider } from '@/components/KeepAliveProvider'
 import Navigation from '@/components/Navigation'
 import Footer from '@/components/Footer'
 import { Toaster } from 'sonner'
@@ -86,22 +87,24 @@ export default function RootLayout({
       <body className={`${inter.className} antialiased`} suppressHydrationWarning>
         <AuthProvider>
           <AuthSessionProvider>
-            <div className="relative flex min-h-screen flex-col overflow-x-hidden">
-              <Navigation />
-              <main className="flex-1 w-full">{children}</main>
-              <Footer />
-            </div>
-            <Toaster 
-              position="bottom-right"
-              toastOptions={{
-                duration: 4000,
-                style: {
-                  background: 'var(--background)',
-                  color: 'var(--foreground)',
-                  border: '1px solid var(--border)',
-                },
-              }}
-            />
+            <KeepAliveProvider>
+              <div className="relative flex min-h-screen flex-col overflow-x-hidden">
+                <Navigation />
+                <main className="flex-1 w-full">{children}</main>
+                <Footer />
+              </div>
+              <Toaster 
+                position="bottom-right"
+                toastOptions={{
+                  duration: 4000,
+                  style: {
+                    background: 'var(--background)',
+                    color: 'var(--foreground)',
+                    border: '1px solid var(--border)',
+                  },
+                }}
+              />
+            </KeepAliveProvider>
           </AuthSessionProvider>
         </AuthProvider>
       </body>
