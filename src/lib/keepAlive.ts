@@ -225,7 +225,7 @@ class KeepAliveService {
     return Math.max(0, interval - elapsed)
   }
 
-  private log(message: string, data?: any): void {
+  private log(message: string, data?: unknown): void {
     if (!this.config.verbose) return
 
     const timestamp = new Date().toISOString()

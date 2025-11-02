@@ -7,7 +7,6 @@
 
 import { useEffect, useRef, useCallback, useState } from 'react'
 import { 
-  startKeepAlive, 
   stopKeepAlive, 
   getKeepAliveService, 
   pingDatabase,
@@ -46,7 +45,15 @@ interface UseKeepAliveReturn {
   /** Manually trigger a ping */
   ping: () => Promise<KeepAlivePingResult>
   /** Get current service status */
-  getStatus: () => ReturnType<typeof getKeepAliveService>['getStatus']
+  getStatus: () => {
+    enabled: boolean
+    running: boolean
+    clientId: string
+    failureCount: number
+    lastPingTime: number
+    isPageVisible: boolean
+    nextPingIn: number
+  }
 }
 
 export function useKeepAlive(options: UseKeepAliveOptions = {}): UseKeepAliveReturn {
@@ -90,7 +97,7 @@ export function useKeepAlive(options: UseKeepAliveOptions = {}): UseKeepAliveRet
         clearInterval(statusInterval.current)
       }
     }
-  }, [])
+  }, [serviceConfig])
 
   // Start service automatically if enabled
   useEffect(() => {
@@ -139,9 +146,12 @@ export function useKeepAlive(options: UseKeepAliveOptions = {}): UseKeepAliveRet
     onPingFailure?.(error)
   }, [onPingFailure])
 
-  const handleServiceStop = useCallback(() => {
-    onServiceStop?.()
-  }, [onServiceStop])
+  // Callback when service stops
+  useEffect(() => {
+    if (onServiceStop && !status.isRunning && status.failureCount >= 5) {
+      onServiceStop()
+    }
+  }, [status.isRunning, status.failureCount, onServiceStop])
 
   // API methods
   const start = useCallback(() => {
