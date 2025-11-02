@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { withTimeout, API_TIMEOUTS } from '@/lib/timeout'
 
 /**
  * Vercel Cron Job - Keep Supabase Connection Alive
@@ -8,9 +9,13 @@ import { createClient } from '@/lib/supabase/server'
  * to ensure the Supabase database connection stays active even when
  * no users are visiting the website.
  * 
- * Schedule: Daily at midnight UTC (00:00)
+ * Schedule: Daily at midnight (00:00 UTC)
  * Cron Expression: 0 0 * * *
+ * 
+ * Timeout: 10 seconds max
  */
+
+export const maxDuration = 10 // Vercel function timeout
 
 export async function GET(request: NextRequest) {
   const startTime = Date.now()
@@ -51,23 +56,34 @@ export async function GET(request: NextRequest) {
 
     console.log('🔄 Cron keep-alive job started:', new Date().toISOString())
 
-    // Create Supabase client
-    const supabase = await createClient()
+    // Create Supabase client with timeout protection
+    const supabase = await withTimeout(
+      createClient(),
+      API_TIMEOUTS.cron,
+      'Create Supabase client'
+    )
     
-    // Perform multiple lightweight queries to ensure connection health
-    const checks = await Promise.allSettled([
-      // Check 1: Query schema information
-      supabase
-        .from('information_schema.schemata')
-        .select('schema_name')
-        .limit(1),
-      
-      // Check 2: Query tables information
-      supabase
-        .from('information_schema.tables')
-        .select('table_name')
-        .limit(1),
-    ])
+    // Perform multiple lightweight queries with timeout protection
+    const checks = await withTimeout(
+      Promise.allSettled([
+        // Check 1: Query products count
+        supabase
+          .from('products')
+          .select('*', { count: 'exact', head: true }),
+        
+        // Check 2: Query categories count
+        supabase
+          .from('categories')
+          .select('*', { count: 'exact', head: true }),
+        
+        // Check 3: Query users count (will fail for non-admin, but connection tested)
+        supabase
+          .from('users')
+          .select('*', { count: 'exact', head: true }),
+      ]),
+      API_TIMEOUTS.cron,
+      'Database health checks'
+    )
 
     const results = checks.map((result, index) => ({
       check: index + 1,
@@ -109,15 +125,26 @@ export async function GET(request: NextRequest) {
     })
 
   } catch (error) {
-    console.error('❌ Cron keep-alive error:', error)
+    const duration = Date.now() - startTime
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+    const isTimeout = errorMessage.includes('timed out')
+    
+    console.error('❌ Cron keep-alive error:', {
+      error: errorMessage,
+      duration: `${duration}ms`,
+      isTimeout,
+      timestamp: new Date().toISOString()
+    })
+    
     return NextResponse.json(
       { 
         success: false, 
-        error: 'Internal server error',
-        message: error instanceof Error ? error.message : 'Unknown error',
+        error: isTimeout ? 'Timeout error' : 'Internal server error',
+        message: errorMessage,
+        duration: `${duration}ms`,
         timestamp: new Date().toISOString()
       },
-      { status: 500 }
+      { status: isTimeout ? 504 : 500 }
     )
   }
 }

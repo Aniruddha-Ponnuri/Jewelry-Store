@@ -37,12 +37,23 @@ export default function ClientNavigation() {
 
   if (!user) {
     return (
-      <div className="hidden lg:flex items-center space-x-2">
-        <Button variant="ghost" asChild>
-          <Link href="/login">Sign In</Link>
+      <div className="hidden lg:flex items-center space-x-2 relative z-10">
+        <Button 
+          variant="outline" 
+          className="border-gray-300 hover:bg-gray-50 cursor-pointer"
+          asChild
+        >
+          <Link href="/login" className="inline-flex items-center justify-center">
+            Sign In
+          </Link>
         </Button>
-        <Button asChild>
-          <Link href="/register">Sign Up</Link>
+        <Button 
+          className="bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white shadow-md cursor-pointer"
+          asChild
+        >
+          <Link href="/register" className="inline-flex items-center justify-center">
+            Sign Up
+          </Link>
         </Button>
       </div>
     )

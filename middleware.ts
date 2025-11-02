@@ -28,7 +28,7 @@ const middlewareConfig = createMiddlewareConfig()
       refreshThreshold: 15 * 60, // 15 minutes
       cookieOptions: {
         httpOnly: true,
-        secure: true, // Always use secure cookies
+        secure: isProduction, // FIXED: Only secure in production
         sameSite: 'lax',
       },
     },

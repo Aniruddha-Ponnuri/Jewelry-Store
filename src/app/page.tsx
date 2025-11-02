@@ -5,40 +5,31 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import Link from 'next/link'
 import { Sparkles, ArrowRight } from 'lucide-react'
-import { Suspense } from 'react'
 
 // Force dynamic rendering to ensure fresh content after logout
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
 
-// Loading component for featured products
-function FeaturedProductsSkeleton() {
-  return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 lg:gap-8">
-      {Array.from({ length: 6 }).map((_, i) => (
-        <div key={i} className="animate-pulse">
-          <div className="bg-gray-200 aspect-square rounded-lg mb-3"></div>
-          <div className="space-y-2">
-            <div className="h-4 bg-gray-200 rounded w-3/4"></div>
-            <div className="h-3 bg-gray-200 rounded w-1/2"></div>
-            <div className="h-6 bg-gray-200 rounded w-1/3"></div>
-          </div>
-        </div>
-      ))}
-    </div>
-  )
-}
-
 async function FeaturedProducts() {
   try {
     const supabase = await createClient()
     
-    const { data: featuredProducts, error } = await supabase
+    // Add timeout to prevent infinite loading
+    const timeoutPromise = new Promise((_, reject) => {
+      setTimeout(() => reject(new Error('Query timeout')), 3000)
+    })
+    
+    const queryPromise = supabase
       .from('products')
       .select('*')
       .eq('is_in_stock', true)
       .order('created_at', { ascending: false })
       .limit(6)
+    
+    const { data: featuredProducts, error } = await Promise.race([
+      queryPromise,
+      timeoutPromise
+    ]) as { data: Product[] | null, error: Error | null }
 
     // Log for debugging
     console.log('Featured products query:', { 
@@ -82,9 +73,9 @@ async function FeaturedProducts() {
               Discover our most popular and newest jewelry pieces, carefully selected for their exceptional beauty and craftsmanship.
             </p>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 lg:gap-8">
-            {featuredProducts.map((product: Product) => (
-              <ProductCard key={product.product_id} product={product} />
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5 sm:gap-6 lg:gap-7">
+            {featuredProducts.map((product: Product, index: number) => (
+              <ProductCard key={product.product_id} product={product} priority={index < 3} />
             ))}
           </div>
           <div className="text-center mt-8 sm:mt-12">
@@ -220,24 +211,8 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {/* Featured Products */}
-      <Suspense fallback={
-        <section className="py-12 sm:py-16 px-3 sm:px-4 bg-white">
-          <div className="container mx-auto">
-            <div className="text-center mb-8 sm:mb-12">
-              <h2 className="text-2xl sm:text-3xl font-bold mb-3 sm:mb-4 text-gray-900">
-                Featured Products
-              </h2>
-              <p className="text-sm sm:text-base text-gray-600 max-w-2xl mx-auto leading-relaxed">
-                Loading our latest featured products...
-              </p>
-            </div>
-            <FeaturedProductsSkeleton />
-          </div>
-        </section>
-      }>
-        <FeaturedProducts />
-      </Suspense>
+      {/* Featured Products - with error boundary */}
+      <FeaturedProducts />
     </div>
   )
 }

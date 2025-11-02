@@ -7,11 +7,10 @@ export async function GET() {
     const supabase = await createClient()
     
     // Perform a lightweight database operation to keep connection alive
-    // Query the system information_schema which is always available
-    const { data, error } = await supabase
-      .from('information_schema.schemata')
-      .select('schema_name')
-      .limit(1)
+    // Use a simple count query on products table
+    const { count, error } = await supabase
+      .from('products')
+      .select('*', { count: 'exact', head: true })
     
     if (error) {
       console.error('Keep-alive ping failed:', error.message)
@@ -26,17 +25,15 @@ export async function GET() {
       )
     }
 
-    // Log successful ping (only in development)
-    if (process.env.NODE_ENV === 'development') {
-      console.log('✅ Keep-alive ping successful:', new Date().toISOString())
-    }
+    // Log successful ping (minimal logging to avoid interference)
+    // Only log if explicitly needed - removed to prevent console clutter
 
     return NextResponse.json({
       success: true,
       message: 'Database connection is alive',
       timestamp: new Date().toISOString(),
       serverTime: Date.now(),
-      schemas: data?.length || 0
+      productCount: count || 0
     })
 
   } catch (error) {
@@ -60,10 +57,10 @@ export async function POST(request: NextRequest) {
     const supabase = await createClient()
     
     // Perform a simple query to test database connectivity
-    const { data, error } = await supabase
-      .from('information_schema.tables')
-      .select('table_name')
-      .limit(1)
+    // Use a lightweight count query instead of querying system tables
+    const { count, error } = await supabase
+      .from('products')
+      .select('*', { count: 'exact', head: true })
     
     if (error) {
       console.error('Keep-alive POST ping failed:', error.message)
@@ -90,7 +87,7 @@ export async function POST(request: NextRequest) {
       serverTime: Date.now(),
       clientId,
       source,
-      tablesFound: data?.length || 0
+      productCount: count || 0
     })
 
   } catch (error) {

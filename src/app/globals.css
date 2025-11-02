@@ -1,4 +1,4 @@
-@import "tailwindcss";
+﻿@import "tailwindcss";
 
 :root {
   --background: 0 0% 100%;
@@ -74,7 +74,8 @@ body {
     box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 10px 10px -5px rgb(0 0 0 / 0.04);
     z-index: 9999 !important;
     animation: slideIn 0.2s ease-out;
-    backdrop-filter: none !important;
+    
+   
   }
 
   @keyframes slideIn {
@@ -122,7 +123,8 @@ body {
     z-index: 9999 !important;
     max-height: 200px !important;
     overflow-y: auto !important;
-    backdrop-filter: none !important;
+    
+   
   }
 
   .admin-select-item {
@@ -132,7 +134,8 @@ body {
     background: rgb(255, 255, 255) !important;
     cursor: pointer !important;
     transition: all 0.15s ease-in-out !important;
-    backdrop-filter: none !important;
+    
+   
   }
 
   .admin-select-item:hover {
@@ -153,7 +156,8 @@ body {
     font-size: 0.875rem !important;
     color: #374151 !important;
     min-height: 2.5rem !important;
-    backdrop-filter: none !important;
+    
+   
   }
 
   .admin-select-trigger:focus {
@@ -166,7 +170,8 @@ body {
   [data-radix-dropdown-content],
   [data-radix-select-content] {
     background: rgb(255, 255, 255) !important;
-    backdrop-filter: none !important;
+    
+   
     z-index: 9999 !important;
   }
 
@@ -174,7 +179,8 @@ body {
   [data-radix-dropdown-item],
   [data-radix-select-item] {
     background: rgb(255, 255, 255) !important;
-    backdrop-filter: none !important;
+    
+   
   }
 
   [data-radix-dropdown-item]:hover,
@@ -185,7 +191,8 @@ body {
   /* Form improvements */
   .form-container {
     background: rgba(255, 255, 255, 0.95);
-    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+   -webkit-backdrop-filter:  blur(10px);
     border: 1px solid rgba(255, 255, 255, 0.2);
     border-radius: 1rem;
     box-shadow: 0 25px 50px -12px rgb(0 0 0 / 0.25);
@@ -252,7 +259,8 @@ body {
     width: 100%;
     max-width: 28rem;
     background: rgba(255, 255, 255, 0.98);
-    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+   -webkit-backdrop-filter:  blur(20px);
     border: 1px solid rgba(255, 255, 255, 0.3);
     border-radius: 1.5rem;
     box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
@@ -294,7 +302,8 @@ body {
   /* Navigation improvements */
   .nav-glass {
     background: rgba(255, 255, 255, 0.95);
-    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+   -webkit-backdrop-filter:  blur(20px);
     border-bottom: 1px solid rgba(0, 0, 0, 0.1);
   }
 
@@ -676,7 +685,7 @@ body {
     /* Ensure navigation has solid background on mobile */
     header[class*="sticky"] {
       background: rgb(255, 255, 255) !important;
-      backdrop-filter: none !important;
+     
       border-bottom: 1px solid rgba(0, 0, 0, 0.1);
       box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1) !important;
     }
@@ -684,14 +693,14 @@ body {
     /* Ensure dialogs have solid backgrounds on mobile */
     [data-slot="dialog-content"] {
       background: rgb(255, 255, 255) !important;
-      backdrop-filter: none !important;
+     
       border: 1px solid rgba(0, 0, 0, 0.1);
     }
     
     /* Ensure dropdown menus are solid on mobile */
     [data-slot="dropdown-menu-content"] {
       background: rgb(255, 255, 255) !important;
-      backdrop-filter: none !important;
+     
       border: 1px solid rgba(0, 0, 0, 0.1);
       z-index: 9999 !important;
     }
@@ -699,7 +708,7 @@ body {
     /* Ensure select menus are solid on mobile */
     [data-slot="select-content"] {
       background: rgb(255, 255, 255) !important;
-      backdrop-filter: none !important;
+     
       border: 1px solid rgba(0, 0, 0, 0.1);
       z-index: 9999 !important;
     }
@@ -707,7 +716,7 @@ body {
     /* Mobile sheet/sidebar solid background */
     [data-slot="sheet-content"] {
       background: rgb(255, 255, 255) !important;
-      backdrop-filter: none !important;
+     
       border: none !important;
       box-shadow: -4px 0 6px -1px rgb(0 0 0 / 0.1) !important;
     }
@@ -715,7 +724,7 @@ body {
     /* Sheet overlay solid */
     [data-slot="sheet-overlay"] {
       background: rgba(0, 0, 0, 0.5) !important;
-      backdrop-filter: none !important;
+     
     }
   }  /* Mobile sheet overflow prevention - Updated */
   @media (max-width: 640px) {
@@ -724,7 +733,7 @@ body {
       max-width: 90vw !important;
       min-width: 280px !important;
       background: rgb(255, 255, 255) !important;
-      backdrop-filter: none !important;
+     
     }
     
     /* Prevent horizontal overflow in sheet content */
@@ -743,7 +752,7 @@ body {
     /* Prevent email text from overflowing */
     [data-slot="sheet-content"] .text-gray-600 {
       word-break: break-word;
-      hyphens: auto;
+     -webkit-hyphens:  auto;
     }
     
     /* Additional mobile fixes for body and viewport */
@@ -792,7 +801,7 @@ body {
       z-index: 50 !important;
       width: 100% !important;
       background: rgb(255, 255, 255) !important;
-      backdrop-filter: none !important;
+     
       border-bottom: 1px solid rgba(0, 0, 0, 0.1) !important;
       box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1) !important;
     }
@@ -849,7 +858,7 @@ body {
     [data-slot="dropdown-menu-content"],
     [data-slot="dialog-content"] {
       background: rgb(255, 255, 255) !important;
-      backdrop-filter: none !important;
+     
     }
   }
 
@@ -937,7 +946,7 @@ body {
   /* Alert Dialog improvements for better visibility */
   [data-radix-dialog-overlay] {
     background-color: rgba(0, 0, 0, 0.8) !important;
-    backdrop-filter: blur(4px) !important;
+   
   }
   
   [data-radix-dialog-content] {
@@ -967,8 +976,8 @@ body {
     background-color: white !important;
     border: 2px solid #d1d5db !important;
     box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04) !important;
-    backdrop-filter: none !important;
-    -webkit-backdrop-filter: none !important;
+   
+    
   }
 
   /* Enhanced solid styling for admin remove dialog */
@@ -976,8 +985,8 @@ body {
     background-color: white !important;
     border: 2px solid #fecaca !important;
     box-shadow: 0 25px 50px -12px rgba(220, 38, 38, 0.25) !important;
-    backdrop-filter: none !important;
-    -webkit-backdrop-filter: none !important;
+   
+    
   }
 
   /* Ensure button backgrounds are solid - using proper CSS selectors */

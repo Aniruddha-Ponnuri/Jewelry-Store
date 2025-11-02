@@ -49,9 +49,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         retryCount
       })
 
-      // Add delay on retries to allow session to stabilize
+      // Add small delay on retries to allow session to stabilize
       if (retryCount > 0) {
-        await new Promise(resolve => setTimeout(resolve, 1000 * retryCount))
+        await new Promise(resolve => setTimeout(resolve, 300)) // 300ms delay
       }
       
       // Ensure we have a valid session before checking admin status
@@ -66,9 +66,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           currentUserId: currentUser.id
         })
         
-        if (retryCount < 3) {
+        if (retryCount < 1) { // Reduced from 2 to 1 retry
           console.log('🔄 [AUTH] Retrying admin check with fresh session...')
-          setTimeout(() => checkAdminStatus(currentUser, retryCount + 1), 1500)
+          setTimeout(() => checkAdminStatus(currentUser, retryCount + 1), 1000) // 1 second delay
           return
         }
         
@@ -149,9 +149,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         retryCount
       })
       
-      if (retryCount < 3) {
-        console.log('🔄 [AUTH] Retrying admin check in 2 seconds...')
-        setTimeout(() => checkAdminStatus(currentUser, retryCount + 1), 2000)
+      if (retryCount < 1) { // Reduced retries
+        console.log('🔄 [AUTH] Retrying admin check...')
+        setTimeout(() => checkAdminStatus(currentUser, retryCount + 1), 1000) // 1 second retry
         return
       }
       
@@ -334,10 +334,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           
           console.log('👤 [AUTH] User profile loaded:', profile ? 'success' : 'no profile found')
           
-          // Check admin status with slight delay to ensure session is fully restored
-          setTimeout(() => {
-            checkAdminStatus(session.user)
-          }, 100)
+          // Check admin status immediately
+          checkAdminStatus(session.user)
         } else {
           console.log('❌ [AUTH] No existing session found')
           setUser(null)
@@ -473,14 +471,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // Small delay then force reload to ensure everything is cleared
       setTimeout(() => {
         window.location.href = '/'
-      }, 100)
+      }, 20000)
     } catch (error) {
       console.error('❌ [AUTH] Logout error:', error)
       // Force reload anyway to clear state
       router.push('/')
       setTimeout(() => {
         window.location.href = '/'
-      }, 100)
+      }, 20000)
     }
   }
 

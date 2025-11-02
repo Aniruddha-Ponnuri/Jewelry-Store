@@ -48,7 +48,8 @@ function ProductCard({ product, isBookmarked = false, onBookmarkChange, priority
           toast.success("Bookmark removed")
           onBookmarkChange?.()
         } else {
-          toast.error("Failed to remove bookmark")
+          console.error('Bookmark removal error:', error)
+          toast.error(`Failed to remove bookmark: ${error.message}`)
         }
       } else {
         const { error } = await supabase
@@ -63,9 +64,12 @@ function ProductCard({ product, isBookmarked = false, onBookmarkChange, priority
           toast.success("Product bookmarked")
           onBookmarkChange?.()
         } else {
-          toast.error("Failed to bookmark product")
+          console.error('Bookmark insertion error:', error)
+          toast.error(`Failed to bookmark product: ${error.message}`)
         }
-      }    } catch {
+      }
+    } catch (err) {
+      console.error('Bookmark toggle exception:', err)
       toast.error("Something went wrong")
     }
 
@@ -82,7 +86,7 @@ function ProductCard({ product, isBookmarked = false, onBookmarkChange, priority
   }
 
   return (
-    <Card className="group overflow-hidden transition-all duration-300 hover:shadow-lg hover:-translate-y-1 w-full max-w-sm mx-auto bg-white border-gray-200">
+    <Card className="group overflow-hidden transition-all duration-300 hover:shadow-xl hover:shadow-amber-100/50 hover:-translate-y-1 w-full bg-white border-gray-200">
       <div className="relative aspect-square overflow-hidden bg-gray-50">
         {product.image_path ? (
           <>
@@ -106,10 +110,12 @@ function ProductCard({ product, isBookmarked = false, onBookmarkChange, priority
             />
           </>
         ) : (
-          <div className="bg-gradient-to-br from-gray-100 to-gray-200 w-full h-full flex items-center justify-center">
+          <div className="bg-gradient-to-br from-slate-50 via-gray-50 to-slate-100 w-full h-full flex items-center justify-center">
             <div className="text-center">
-              <div className="text-4xl mb-2">💎</div>
-              <span className="text-gray-500 text-xs sm:text-sm">No Image</span>
+              <svg className="w-16 h-16 mx-auto mb-3 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              </svg>
+              <span className="text-gray-400 text-sm font-medium">No Image</span>
             </div>
           </div>
         )}
@@ -152,21 +158,21 @@ function ProductCard({ product, isBookmarked = false, onBookmarkChange, priority
             {product.description}
           </p>
           
-          <div className="flex items-end justify-between gap-2">
-            <div className="flex flex-col">
-              <span className="text-lg sm:text-xl font-bold text-amber-600">
+          <div className="flex items-start justify-between gap-3">
+            <div className="flex flex-col gap-1">
+              <span className="text-xl sm:text-2xl font-bold text-amber-600 leading-tight">
                 {formatPrice(product.price)}
               </span>
               {product.weight && (
-                <span className="text-xs text-gray-500">{product.weight}g</span>
+                <span className="text-xs text-gray-500 font-medium">{product.weight}g</span>
               )}
             </div>
             
-            <div className="flex flex-col gap-1">
-              <Badge variant="secondary" className="text-xs capitalize text-center">
+            <div className="flex flex-col gap-1.5 items-end">
+              <Badge variant="secondary" className="text-xs capitalize whitespace-nowrap px-2 py-0.5">
                 {product.category}
               </Badge>
-              <Badge variant="outline" className="text-xs capitalize text-center">
+              <Badge variant="outline" className="text-xs capitalize whitespace-nowrap px-2 py-0.5">
                 {product.material}
               </Badge>
             </div>

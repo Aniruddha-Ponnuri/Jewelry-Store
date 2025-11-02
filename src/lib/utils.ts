@@ -25,6 +25,6 @@ import { env } from '@/lib/env'
 
 export function getPublicImageUrl(path: string | null) {
   if (!path) return null
-  // Standardize to product_images bucket for consistency
-  return `${env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/product_images/${path}`
+  // Use 'images' bucket (matches upload location in admin/products)
+  return `${env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/images/${path}`
 }

@@ -18,6 +18,18 @@ export async function createClient() {
     env.NEXT_PUBLIC_SUPABASE_URL,
     env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
     {
+      global: {
+        fetch: (url, options = {}) => {
+          // Add timeout to all server-side fetch requests (30s)
+          const controller = new AbortController()
+          const timeout = setTimeout(() => controller.abort(), 30000)
+          
+          return fetch(url, {
+            ...options,
+            signal: controller.signal,
+          }).finally(() => clearTimeout(timeout))
+        },
+      },
       cookies: {
         get: (name: string) => {
           const cookie = cookieStore.get(name)
@@ -28,14 +40,16 @@ export async function createClient() {
               name, 
               value, 
               ...options,
-              // Ensure secure settings for auth cookies
+              // Cookie settings - secure only in production
               httpOnly: options.httpOnly ?? true,
-              secure: options.secure ?? true, // Always secure in production
+              secure: process.env.NODE_ENV === 'production', // FIXED: false in dev
               sameSite: options.sameSite ?? 'lax'
             })
-          } catch {
-            // In read-only contexts, we can't set cookies, so we silently ignore
-            // This is expected behavior for SSG pages
+          } catch (error) {
+            // Log error in development for debugging
+            if (process.env.NODE_ENV === 'development') {
+              console.warn('Failed to set cookie:', name, error)
+            }
           }
         },
         remove: (name: string, options: CookieOptions) => {
@@ -65,6 +79,17 @@ export async function createLogoutClient() {
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
+      global: {
+        fetch: (url, options = {}) => {
+          const controller = new AbortController()
+          const timeout = setTimeout(() => controller.abort(), 10000)
+          
+          return fetch(url, {
+            ...options,
+            signal: controller.signal,
+          }).finally(() => clearTimeout(timeout))
+        },
+      },
       cookies: {
         get: (name: string) => cookieStore.get(name)?.value,        set: (name: string, value: string, options: CookieOptions) => {
           try {

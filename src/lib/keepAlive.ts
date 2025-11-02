@@ -50,11 +50,10 @@ class KeepAliveService {
     // Generate unique client ID
     this.clientId = `client_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
     
-    this.log('KeepAlive service initialized', {
-      interval: `${this.config.interval / 1000 / 60} minutes`,
-      backgroundInterval: `${this.config.backgroundInterval / 1000 / 60} minutes`,
-      enabled: this.config.enabled
-    })
+    // Minimal initialization logging to avoid interference
+    if (this.config.verbose) {
+      console.log(`[KeepAlive] Initialized (${this.config.interval / 1000 / 60}min intervals)`)
+    }
   }
 
   /**
@@ -62,24 +61,22 @@ class KeepAliveService {
    */
   start(): void {
     if (!this.config.enabled) {
-      this.log('KeepAlive service is disabled')
       return
     }
 
     if (this.intervalId) {
-      this.log('KeepAlive service already running')
       return
     }
 
     // Set up visibility change listeners
     this.setupVisibilityHandlers()
 
-    // Start with immediate ping, then schedule regular intervals
-    this.ping().then(() => {
-      this.scheduleNextPing()
-    })
-
-    this.log('KeepAlive service started')
+    // Delay first ping by 10 seconds to not interfere with initial content load
+    setTimeout(() => {
+      this.ping().then(() => {
+        this.scheduleNextPing()
+      })
+    }, 10000) // 10 second delay
   }
 
   /**
@@ -101,7 +98,9 @@ class KeepAliveService {
       document.removeEventListener('visibilitychange', this.handleVisibilityChange)
     }
 
-    this.log('KeepAlive service stopped')
+    if (this.config.verbose) {
+      console.log('[KeepAlive] Service stopped')
+    }
   }
 
   /**
@@ -118,16 +117,10 @@ class KeepAliveService {
 
     try {
       const response = await fetch('/api/keep-alive', {
-        method: 'POST',
+        method: 'GET',
         headers: {
           'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          clientId: this.clientId,
-          source: 'keep-alive-service',
-          pageVisible: this.isPageVisible,
-          lastPing: this.lastPingTime
-        })
+        }
       })
 
       const result: KeepAlivePingResult = await response.json()
@@ -135,7 +128,10 @@ class KeepAliveService {
       if (result.success) {
         this.failureCount = 0
         this.lastPingTime = Date.now()
-        this.log('Ping successful', result)
+        // Only log if verbose and failures occurred previously
+        if (this.config.verbose && this.failureCount > 0) {
+          console.log(`[KeepAlive] Connection restored`)
+        }
       } else {
         this.handlePingFailure(result.error || 'Unknown error')
       }
@@ -180,15 +176,23 @@ class KeepAliveService {
       await this.ping()
     }, interval)
 
-    this.log(`Next ping scheduled in ${interval / 1000 / 60} minutes`)
+    // Reduced logging - only log in verbose mode and only once
+    if (this.config.verbose && !this.lastPingTime) {
+      console.log(`[KeepAlive] Interval set to ${interval / 1000 / 60} minutes`)
+    }
   }
 
   private handlePingFailure(error: string): void {
     this.failureCount++
-    this.log(`Ping failed (${this.failureCount}/${this.config.maxFailures}):`, error)
+    
+    if (this.config.verbose) {
+      console.warn(`[KeepAlive] Ping failed (${this.failureCount}/${this.config.maxFailures}):`, error)
+    }
 
     if (this.failureCount >= this.config.maxFailures) {
-      this.log(`Maximum failures reached (${this.config.maxFailures}). Stopping keep-alive service.`)
+      if (this.config.verbose) {
+        console.error(`[KeepAlive] Max failures reached. Stopping service.`)
+      }
       this.stop()
     }
   }
@@ -205,8 +209,6 @@ class KeepAliveService {
     this.isPageVisible = !document.hidden
 
     if (wasVisible !== this.isPageVisible) {
-      this.log(`Page visibility changed: ${this.isPageVisible ? 'visible' : 'hidden'}`)
-      
       // Reschedule with appropriate interval
       this.scheduleNextPing()
 
@@ -223,17 +225,6 @@ class KeepAliveService {
     const interval = this.isPageVisible ? this.config.interval : this.config.backgroundInterval
     const elapsed = Date.now() - this.lastPingTime
     return Math.max(0, interval - elapsed)
-  }
-
-  private log(message: string, data?: unknown): void {
-    if (!this.config.verbose) return
-
-    const timestamp = new Date().toISOString()
-    if (data) {
-      console.log(`[KeepAlive ${timestamp}] ${message}`, data)
-    } else {
-      console.log(`[KeepAlive ${timestamp}] ${message}`)
-    }
   }
 }
 

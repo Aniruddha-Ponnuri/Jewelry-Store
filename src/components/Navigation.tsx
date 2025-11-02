@@ -11,37 +11,9 @@ import ClientNavigation from './ClientNavigation'
 import AdminDropdown from './AdminDropdown'
 
 export default function Navigation() {
-  const { user, isAdmin, isMasterAdmin, loading, signOut, refreshAdminStatus } = useAuth()
+  const { user, isAdmin, isMasterAdmin, signOut, refreshAdminStatus } = useAuth()
   const [isOpen, setIsOpen] = useState(false)
   const [isMobileLoggingOut, setIsMobileLoggingOut] = useState(false)
-
-  // Use AuthContext as primary source - it's more reliable
-  const isAuthenticated = !!user
-
-  // Reduce noisy logs in production
-  if (process.env.NODE_ENV !== 'production') {
-    console.log('🧭 [NAVIGATION] Auth status:', {
-      timestamp: new Date().toISOString(),
-      user: user ? {
-        id: user.id,
-        email: user.email
-      } : null,
-      isAdmin,
-      isMasterAdmin,
-      loading,
-      userType: user ? (isMasterAdmin ? 'Master Admin' : isAdmin ? 'Admin' : 'Regular User') : 'Not Logged In'
-    })
-
-    console.log('🔍 [Navigation] Detailed Auth status:', {
-      user: user?.email,
-      isAuthenticated,
-      isAdmin,
-      loading,
-      userObject: user,
-      authSource: 'AuthContext-Primary',
-      timestamp: new Date().toISOString()
-    })
-  }
 
   const handleMobileSignOut = async () => {
     setIsMobileLoggingOut(true)
@@ -62,44 +34,35 @@ export default function Navigation() {
     <>
       <Link 
         href="/" 
-        className="text-sm font-medium hover:text-amber-600 transition-colors"
-        prefetch={true}
+        className="text-sm font-medium hover:text-amber-600 transition-colors relative z-10 cursor-pointer"
+        onClick={() => console.log('Navigating to Home')}
       >
         Home
       </Link>
       <Link 
         href="/products" 
-        className="text-sm font-medium hover:text-amber-600 transition-colors"
-        prefetch={true}
+        className="text-sm font-medium hover:text-amber-600 transition-colors relative z-10 cursor-pointer"
+        onClick={() => console.log('Navigating to Products')}
       >
         Products
       </Link>
       {user && (
         <Link 
           href="/bookmarks" 
-          className="text-sm font-medium hover:text-amber-600 transition-colors"
-          prefetch={true}
+          className="text-sm font-medium hover:text-amber-600 transition-colors relative z-10 cursor-pointer"
+          onClick={() => console.log('Navigating to Bookmarks')}
         >
           Bookmarks
-        </Link>
-      )}
-      {isAdmin && (
-        <Link 
-          href="/admin" 
-          className="admin-desktop-button flex items-center gap-2"
-          prefetch={true}
-        >
-          🛡️ Admin Dashboard
         </Link>
       )}
     </>
   )
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-white shadow-sm" role="banner">
-      <div className="container mx-auto px-4 max-w-full overflow-hidden">
-        <div className="flex h-16 items-center justify-between min-w-0">
-          <div className="flex items-center">
-            <Link href="/" className="flex items-center space-x-2">
+      <div className="container mx-auto px-4 max-w-full">
+        <div className="flex h-16 items-center justify-between gap-8">
+          <div className="flex items-center flex-shrink-0">
+            <Link href="/" className="flex items-center space-x-2 relative z-10">
               <div className="h-8 w-8 bg-gradient-to-r from-amber-500 to-orange-500 rounded-full flex items-center justify-center">
                 <span className="text-white font-bold text-sm">💎</span>
               </div>
@@ -108,11 +71,11 @@ export default function Navigation() {
           </div>
 
           {/* Desktop Navigation */}
-          <nav className="hidden lg:flex items-center space-x-6">
+          <nav className="hidden lg:flex items-center space-x-6 relative z-10" role="navigation" aria-label="Main navigation">
             <NavItems />
           </nav>
 
-          <div className="flex items-center space-x-4">
+          <div className="flex items-center space-x-4 relative z-20">
             <AdminDropdown />
             <ClientNavigation />
 
@@ -278,13 +241,20 @@ export default function Navigation() {
                       {!user && (
                         <div className="space-y-3 pt-4 border-t">
                           <h3 className="text-sm font-medium text-gray-500 uppercase tracking-wide">Account</h3>
-                          <Link href="/login" onClick={() => setIsOpen(false)}>
-                            <Button variant="outline" className="w-full justify-start">
+                          <Link href="/login">
+                            <Button 
+                              variant="outline" 
+                              className="w-full justify-start"
+                              onClick={() => setIsOpen(false)}
+                            >
                               Sign In
                             </Button>
                           </Link>
-                          <Link href="/register" onClick={() => setIsOpen(false)}>
-                            <Button className="w-full justify-start">
+                          <Link href="/register">
+                            <Button 
+                              className="w-full justify-start"
+                              onClick={() => setIsOpen(false)}
+                            >
                               Sign Up
                             </Button>
                           </Link>

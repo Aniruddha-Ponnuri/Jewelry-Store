@@ -29,17 +29,10 @@ export function KeepAliveProvider({
   // Start the keep-alive service
   useSimpleKeepAlive(enabled)
 
-  // Optional: Log when provider mounts in development
+  // Optional: Log when provider mounts in development (minimal logging)
   useEffect(() => {
     if (debug && enabled) {
-      console.log('🔄 KeepAlive provider mounted - Supabase connection monitoring started')
-      console.log(`📊 Keep-alive configuration:`, {
-        interval: `${env.NEXT_PUBLIC_KEEP_ALIVE_INTERVAL / 1000 / 60} minutes`,
-        backgroundInterval: `${env.NEXT_PUBLIC_KEEP_ALIVE_BACKGROUND_INTERVAL / 1000 / 60} minutes`,
-        enabled
-      })
-    } else if (debug && !enabled) {
-      console.log('⏸️ KeepAlive provider mounted but service is disabled')
+      console.log('🔄 KeepAlive: Started (first ping in 10s, then every', `${env.NEXT_PUBLIC_KEEP_ALIVE_INTERVAL / 1000 / 60}min)`)
     }
   }, [debug, enabled])
 

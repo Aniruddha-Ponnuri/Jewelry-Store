@@ -23,7 +23,8 @@ export async function generateMetadata(props: PageProps): Promise<Metadata> {
 
   const title = product?.name ? `${product.name} | SilverPalace` : 'Product | SilverPalace'
   const description = product?.description || 'Discover our exquisite silver jewelry.'
-  const images = product?.image_path ? [{ url: `${env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/product_images/${product.image_path}` }] : []
+  // Use 'images' bucket (matches upload location in admin/products)
+  const images = product?.image_path ? [{ url: `${env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/images/${product.image_path}` }] : []
 
   return {
     title,

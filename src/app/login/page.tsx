@@ -1,9 +1,8 @@
 'use client'
 
-import { useActionState, useEffect } from 'react'
-import { useFormStatus } from 'react-dom'
+import { useState, FormEvent } from 'react'
 import Link from 'next/link'
-import { login } from '@/app/login/actions'
+import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -12,39 +11,49 @@ import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Mail, Lock, Loader2 } from 'lucide-react'
 import LoginRedirect from './LoginRedirect'
 
-const initialState = { error: '' }
-
-function LoginButton() {
-  const { pending } = useFormStatus()
-  return (
-    <Button 
-      type="submit" 
-      className="w-full h-12 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-semibold text-base shadow-lg transition-all duration-200 transform hover:scale-[1.02]" 
-      aria-disabled={pending} 
-      disabled={pending}
-    >
-      {pending ? (
-        <>
-          <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-          <span>Signing In...</span>
-        </>
-      ) : (
-        <span>Sign In</span>
-      )}
-    </Button>
-  )
-}
-
 export default function Login() {
-  const [state, formAction] = useActionState(login, initialState)
+  const router = useRouter()
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [error, setError] = useState('')
+  const [loading, setLoading] = useState(false)
   
-  // Handle successful login
-  useEffect(() => {
-    if (state?.success) {
-      // Force a page refresh to update auth state properly
+  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault()
+    setError('')
+    setLoading(true)
+    
+    try {
+      console.log('🔐 [LOGIN] Submitting login for:', email)
+      
+      const response = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
+      })
+      
+      const data = await response.json()
+      
+      if (!response.ok) {
+        console.error('❌ [LOGIN] Login failed:', data.error)
+        setError(data.error || 'Login failed')
+        setLoading(false)
+        return
+      }
+      
+      console.log('✅ [LOGIN] Login successful!')
+      console.log('📊 [LOGIN] Cookies set:', document.cookie.includes('sb-jfuhcgnjqfeznqpbloze-auth-token'))
+      
+      // Force a hard redirect to ensure auth state refreshes
+      console.log('� [LOGIN] Forcing page refresh...')
       window.location.href = '/'
+      
+    } catch (err) {
+      console.error('💥 [LOGIN] Unexpected error:', err)
+      setError('An unexpected error occurred')
+      setLoading(false)
     }
-  }, [state?.success])
+  }
   
   return (    <div className="min-h-screen auth-container">
       <LoginRedirect />
@@ -58,7 +67,7 @@ export default function Login() {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
-          <form action={formAction} className="space-y-5">
+          <form onSubmit={handleSubmit} className="space-y-5">
             <div className="space-y-3">
               <Label htmlFor="email" className="text-sm font-semibold text-gray-700">Email Address</Label>
               <div className="relative">
@@ -67,10 +76,13 @@ export default function Login() {
                   id="email"
                   name="email"
                   type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
                   placeholder="Enter your email"
                   className="pl-11 h-12 border-gray-200 focus:border-amber-500 focus:ring-amber-500 text-base transition-all duration-200"
                   required
                   autoComplete="email"
+                  disabled={loading}
                 />
               </div>
             </div>
@@ -82,10 +94,13 @@ export default function Login() {
                   id="password"
                   name="password"
                   type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
                   placeholder="Enter your password"
                   className="pl-11 h-12 border-gray-200 focus:border-amber-500 focus:ring-amber-500 text-base transition-all duration-200"
                   required
                   autoComplete="current-password"
+                  disabled={loading}
                 />
               </div>            </div>
             
@@ -99,12 +114,26 @@ export default function Login() {
               </Link>
             </div>
             
-            {state.error && (
+            {error && (
               <Alert variant="destructive" className="border-red-200 bg-red-50">
-                <AlertDescription className="text-sm text-red-800">{state.error}</AlertDescription>
+                <AlertDescription className="text-sm text-red-800">{error}</AlertDescription>
               </Alert>
             )}
-            <LoginButton />
+            
+            <Button 
+              type="submit" 
+              className="w-full h-12 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-semibold text-base shadow-lg transition-all duration-200 transform hover:scale-[1.02]" 
+              disabled={loading}
+            >
+              {loading ? (
+                <>
+                  <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                  <span>Signing In...</span>
+                </>
+              ) : (
+                <span>Sign In</span>
+              )}
+            </Button>
           </form>
           <div className="text-center">
             <div className="relative">

@@ -12,6 +12,18 @@ export function createClient() {
     env.NEXT_PUBLIC_SUPABASE_URL,
     env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
     {
+      global: {
+        fetch: (url, options = {}) => {
+          // Add timeout to all fetch requests (30s default)
+          const controller = new AbortController()
+          const timeout = setTimeout(() => controller.abort(), 30000)
+          
+          return fetch(url, {
+            ...options,
+            signal: controller.signal,
+          }).finally(() => clearTimeout(timeout))
+        },
+      },
       auth: {
         persistSession: true,
         autoRefreshToken: true,

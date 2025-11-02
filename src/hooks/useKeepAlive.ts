@@ -76,10 +76,14 @@ export function useKeepAlive(options: UseKeepAliveOptions = {}): UseKeepAliveRet
 
   const serviceRef = useRef<ReturnType<typeof getKeepAliveService> | null>(null)
   const statusInterval = useRef<NodeJS.Timeout | null>(null)
+  const initializedRef = useRef(false)
 
-  // Initialize service
+  // Initialize service ONCE
   useEffect(() => {
+    if (initializedRef.current) return
+    
     serviceRef.current = getKeepAliveService(serviceConfig)
+    initializedRef.current = true
     
     // Update initial status
     const initialStatus = serviceRef.current.getStatus()
@@ -97,7 +101,8 @@ export function useKeepAlive(options: UseKeepAliveOptions = {}): UseKeepAliveRet
         clearInterval(statusInterval.current)
       }
     }
-  }, [serviceConfig])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []) // Intentionally empty - initialize once on mount
 
   // Start service automatically if enabled
   useEffect(() => {

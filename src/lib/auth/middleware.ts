@@ -8,6 +8,7 @@ import {
   type SecurityConfig 
 } from './security'
 import { env } from '@/lib/env'
+import { withTimeout } from '@/lib/timeout'
 
 // Middleware configuration
 export interface MiddlewareConfig {
@@ -209,8 +210,12 @@ export class AuthMiddleware {
 
   private async getAuthState(supabase: ReturnType<typeof createServerClient>, request: NextRequest) {
     try {
-      // Get session with enhanced error handling
-      const { data: { session }, error: sessionError } = await supabase.auth.getSession()
+      // Get session with enhanced error handling and timeout (10s)
+      const { data: { session }, error: sessionError } = await withTimeout(
+        supabase.auth.getSession(),
+        10000,
+        'Get session'
+      )
       
       if (sessionError) {
         this.logger.warn('Session error in middleware', { error: sessionError.message, code: sessionError.status }, request)
@@ -263,30 +268,102 @@ export class AuthMiddleware {
     isMasterAdmin: boolean
     error?: string
   }> {
+    const checkStartTime = Date.now()
+    this.logger.info('🔐 [MIDDLEWARE] Starting admin status check', { 
+      userId,
+      pathname: request.nextUrl.pathname
+    }, request)
+
     try {
+      // First verify we have a valid session
+      this.logger.info('📋 [MIDDLEWARE] Verifying session...', { userId }, request)
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession()
+      
+      if (sessionError || !session || session.user.id !== userId) {
+        this.logger.warn('❌ [MIDDLEWARE] Invalid session during admin check', { 
+          error: sessionError?.message,
+          hasSession: !!session,
+          sessionUserId: session?.user?.id,
+          requestedUserId: userId,
+          sessionMatch: session?.user?.id === userId,
+          duration: `${Date.now() - checkStartTime}ms`
+        }, request)
+        return { isAdmin: false, isMasterAdmin: false, error: 'invalid_session' }
+      }
+
+      this.logger.info('✅ [MIDDLEWARE] Session verified', { 
+        userId,
+        email: session.user.email,
+        expiresAt: session.expires_at
+      }, request)
+
       // Check admin status with retries
       let adminResult = null
       let adminError = null
       
-      for (let attempt = 0; attempt < 2; attempt++) {
-        const { data, error } = await supabase.rpc('is_admin')
-        adminResult = data
-        adminError = error
+      this.logger.info('🔍 [MIDDLEWARE] Calling is_admin() RPC with retries...', { userId }, request)
+      
+      for (let attempt = 0; attempt < 2; attempt++) { // Reduced to 2 attempts
+        const attemptStart = Date.now()
+        this.logger.info(`🔄 [MIDDLEWARE] Admin check attempt ${attempt + 1}/2`, { userId }, request)
         
-        if (!error) break
+        try {
+          // Create timeout promise race
+          const timeoutPromise = new Promise((_, reject) => {
+            setTimeout(() => reject(new Error('Admin check timed out after 5s')), 5000)
+          })
+          
+          const rpcPromise = supabase.rpc('is_admin')
+          const { data, error } = await Promise.race([rpcPromise, timeoutPromise]) as Awaited<typeof rpcPromise>
+          
+          adminResult = data
+          adminError = error
+          
+          if (!error) {
+            this.logger.info(`✅ [MIDDLEWARE] Admin check successful on attempt ${attempt + 1}`, { 
+              userId,
+              isAdmin: Boolean(data),
+              rawResult: data,
+              attemptDuration: `${Date.now() - attemptStart}ms`,
+              totalDuration: `${Date.now() - checkStartTime}ms`
+            }, request)
+            break
+          }
+          
+          this.logger.warn(`⚠️ [MIDDLEWARE] Admin check attempt ${attempt + 1} failed`, { 
+            attempt: attempt + 1,
+            error: error.message,
+            code: error.code,
+            hint: error.hint,
+            attemptDuration: `${Date.now() - attemptStart}ms`
+          }, request)
+        } catch (error) {
+          this.logger.error(`💥 [MIDDLEWARE] Admin check attempt ${attempt + 1} threw exception`, error, request)
+          adminError = error instanceof Error ? { message: error.message, code: 'exception' } : { message: 'Unknown error', code: 'exception' }
+        }
         
-        if (attempt < 1) {
-          await new Promise(resolve => setTimeout(resolve, 500))
+        if (attempt < 1) { // Only 1 retry
+          const waitTime = 1000 // Fixed 1s delay
+          this.logger.info(`⏳ [MIDDLEWARE] Waiting ${waitTime}ms before retry...`, { userId }, request)
+          await new Promise(resolve => setTimeout(resolve, waitTime))
         }
       }
       
       if (adminError) {
-        this.logger.warn('Admin check failed in middleware', { error: adminError.message }, request)
+        this.logger.error('💥 [MIDDLEWARE] All admin check attempts FAILED', { 
+          error: adminError.message,
+          code: adminError.code,
+          hint: adminError.hint,
+          details: adminError.details,
+          userId,
+          totalDuration: `${Date.now() - checkStartTime}ms`
+        }, request)
         
         // For authentication-related errors, treat as not admin
         if (adminError.message?.includes('permission') || 
             adminError.message?.includes('not authenticated') ||
             adminError.message?.includes('JWT')) {
+          this.logger.warn('🔒 [MIDDLEWARE] Auth-related error - returning not admin', { userId }, request)
           return { isAdmin: false, isMasterAdmin: false, error: 'auth_required' }
         }
         
@@ -294,22 +371,56 @@ export class AuthMiddleware {
       }
       
       const isAdmin = Boolean(adminResult)
+      this.logger.info('✅ [MIDDLEWARE] Admin status determined', { 
+        userId,
+        isAdmin,
+        rawResult: adminResult
+      }, request)
+      
       let isMasterAdmin = false
       
       // Check master admin status if user is admin
       if (isAdmin) {
+        this.logger.info('👑 [MIDDLEWARE] User is admin, checking master admin status...', { userId }, request)
+        
         try {
+          const masterStart = Date.now()
           const { data: masterResult, error: masterError } = await supabase.rpc('is_master_admin')
           
           if (!masterError) {
             isMasterAdmin = Boolean(masterResult)
+            this.logger.info('✅ [MIDDLEWARE] Master admin check successful', { 
+              userId,
+              isMasterAdmin,
+              rawResult: masterResult,
+              duration: `${Date.now() - masterStart}ms`
+            }, request)
           } else {
-            this.logger.warn('Master admin check failed', { error: masterError.message }, request)
+            this.logger.warn('⚠️ [MIDDLEWARE] Master admin check failed', { 
+              error: masterError.message,
+              code: masterError.code,
+              userId,
+              duration: `${Date.now() - masterStart}ms`
+            }, request)
           }
         } catch (masterError) {
-          this.logger.error('Master admin check error', masterError, request)
+          this.logger.error('💥 [MIDDLEWARE] Master admin check error', {
+            error: masterError instanceof Error ? masterError.message : 'Unknown error',
+            userId
+          }, request)
         }
+      } else {
+        this.logger.info('⏭️ [MIDDLEWARE] User is NOT admin, skipping master admin check', { userId }, request)
       }
+      
+      const totalDuration = Date.now() - checkStartTime
+      this.logger.info('✅ [MIDDLEWARE] Admin status check COMPLETE', { 
+        userId,
+        isAdmin,
+        isMasterAdmin,
+        totalDuration: `${totalDuration}ms`,
+        pathname: request.nextUrl.pathname
+      }, request)
       
       return { isAdmin, isMasterAdmin }
       

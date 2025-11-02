@@ -32,6 +32,19 @@ const nextConfig: NextConfig = {
   experimental: {
     optimizePackageImports: ['lucide-react', '@radix-ui/react-icons'],
   },
+  // Disable source maps in development to avoid 404 errors from @supabase packages
+  productionBrowserSourceMaps: false,
+  webpack: (config, { dev, isServer }) => {
+    // Disable source maps for Supabase packages to prevent 404s
+    if (dev && !isServer) {
+      config.module.rules.push({
+        test: /node_modules\/@supabase/,
+        use: ['source-map-loader'],
+        enforce: 'pre',
+      });
+    }
+    return config;
+  },
 };
 
 export default nextConfig;
