@@ -1,10 +1,16 @@
 import { createBrowserClient } from '@supabase/ssr'
 import type { Database } from '@/types/database'
+import { env } from '@/lib/env'
 
 export function createClient() {
+  // Validate environment variables
+  if (!env.NEXT_PUBLIC_SUPABASE_URL || !env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+    throw new Error('Supabase credentials missing. Check environment variables.')
+  }
+
   return createBrowserClient<Database>(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    env.NEXT_PUBLIC_SUPABASE_URL,
+    env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
     {
       auth: {
         persistSession: true,
@@ -18,7 +24,7 @@ export function createClient() {
               try {
                 return localStorage.getItem(key)
               } catch (error) {
-                if (process.env.NODE_ENV !== 'production') console.warn('Error reading from localStorage:', error)
+                console.warn('Error reading from localStorage:', error)
                 return null
               }
             }
@@ -29,7 +35,7 @@ export function createClient() {
               try {
                 localStorage.setItem(key, value)
               } catch (error) {
-                if (process.env.NODE_ENV !== 'production') console.warn('Error writing to localStorage:', error)
+                console.warn('Error writing to localStorage:', error)
               }
             }
           },
@@ -38,7 +44,7 @@ export function createClient() {
               try {
                 localStorage.removeItem(key)
               } catch (error) {
-                if (process.env.NODE_ENV !== 'production') console.warn('Error removing from localStorage:', error)
+                console.warn('Error removing from localStorage:', error)
               }
             }
           }

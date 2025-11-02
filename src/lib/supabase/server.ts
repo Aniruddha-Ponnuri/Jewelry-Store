@@ -1,18 +1,22 @@
 import { createServerClient, type CookieOptions } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 import type { Database } from '@/types/database'
+import { env } from '@/lib/env'
 
 /** Creates a Supabase client for server-side usage */
 export async function createClient() {
-  // Validate environment variables
-  if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
-    console.error('Supabase environment variables are not set.')
+  // Validate environment variables at runtime
+  if (!env.NEXT_PUBLIC_SUPABASE_URL || !env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+    const error = 'Supabase credentials missing. Check NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY environment variables.'
+    console.error(error)
+    throw new Error(error)
   }
+
   const cookieStore = await cookies()
 
   return createServerClient<Database>(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    env.NEXT_PUBLIC_SUPABASE_URL,
+    env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
     {
       cookies: {
         get: (name: string) => {
@@ -26,7 +30,7 @@ export async function createClient() {
               ...options,
               // Ensure secure settings for auth cookies
               httpOnly: options.httpOnly ?? true,
-              secure: options.secure ?? (process.env.NODE_ENV === 'production'),
+              secure: options.secure ?? true, // Always secure in production
               sameSite: options.sameSite ?? 'lax'
             })
           } catch {

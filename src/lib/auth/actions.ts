@@ -31,14 +31,14 @@ export interface AuthResult {
   }
 }
 
-interface LoginData {
+export interface LoginData {
   email: string
   password: string
   remember?: boolean
   redirectTo?: string
 }
 
-interface RegisterData {
+export interface RegisterData {
   email: string
   password: string
   fullName?: string
@@ -445,7 +445,7 @@ export async function secureRegister(
       data: {
         user: {
           id: data.user.id,
-          email: data.user.email
+          email: (data.user.email || sanitizedEmail) as string
         },
         requiresVerification: !data.session
       }
@@ -564,7 +564,7 @@ export async function securePasswordReset(
       }
     }
 
-    const sanitizedEmail = inputValidator.sanitizeInput(email).toLowerCase()
+    const sanitizedEmail = String(inputValidator.sanitizeInput(email)).toLowerCase()
     const supabase = await createClient()
 
     const { error } = await supabase.auth.resetPasswordForEmail(sanitizedEmail, {
@@ -629,5 +629,4 @@ function validateRedirectUrl(url: string): string {
   return '/'
 }
 
-// Export types
-export type { AuthResult, LoginData, RegisterData }
+// Types are already exported at the top of the file

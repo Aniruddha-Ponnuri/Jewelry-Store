@@ -1,6 +1,8 @@
 import { enhancedAuthMiddleware, createMiddlewareConfig } from '@/lib/auth/middleware'
 import { type NextRequest } from 'next/server'
 
+const isProduction = process.env.NODE_ENV === 'production'
+
 // Configure enhanced middleware with your specific settings
 const middlewareConfig = createMiddlewareConfig()
   .withRoutes({
@@ -26,13 +28,13 @@ const middlewareConfig = createMiddlewareConfig()
       refreshThreshold: 15 * 60, // 15 minutes
       cookieOptions: {
         httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
+        secure: true, // Always use secure cookies
         sameSite: 'lax',
       },
     },
     logging: {
-      level: process.env.NODE_ENV === 'production' ? 'minimal' : 'standard',
-      includeIPs: process.env.NODE_ENV !== 'production',
+      level: isProduction ? 'minimal' : 'standard',
+      includeIPs: !isProduction,
       includeSensitiveData: false,
     },
   })

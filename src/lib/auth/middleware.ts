@@ -7,9 +7,10 @@ import {
   SessionManager,
   type SecurityConfig 
 } from './security'
+import { env } from '@/lib/env'
 
 // Middleware configuration
-interface MiddlewareConfig {
+export interface MiddlewareConfig {
   security: Partial<SecurityConfig>
   routes: {
     protected: string[]
@@ -110,7 +111,7 @@ export class AuthMiddleware {
       return forwarded.split(',')[0].trim()
     }
     
-    return real || request.ip || 'unknown'
+    return real || 'unknown'
   }
 
   private addSecurityHeaders(response: NextResponse): NextResponse {
@@ -143,9 +144,18 @@ export class AuthMiddleware {
       },
     })
 
+    // Validate environment variables
+    if (!env.NEXT_PUBLIC_SUPABASE_URL || !env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+      this.logger.error('Missing Supabase credentials', { 
+        hasUrl: !!env.NEXT_PUBLIC_SUPABASE_URL,
+        hasKey: !!env.NEXT_PUBLIC_SUPABASE_ANON_KEY 
+      })
+      throw new Error('Supabase configuration missing')
+    }
+
     const supabase = createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      env.NEXT_PUBLIC_SUPABASE_URL,
+      env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
       {
         cookies: {
           getAll() {
@@ -161,7 +171,7 @@ export class AuthMiddleware {
                 ...options,
                 // Ensure secure cookie settings
                 httpOnly: options.httpOnly ?? true,
-                secure: options.secure ?? (process.env.NODE_ENV === 'production'),
+                secure: options.secure ?? true, // Always secure in production
                 sameSite: options.sameSite ?? 'lax',
               })
             )
@@ -203,7 +213,7 @@ export class AuthMiddleware {
       const { data: { session }, error: sessionError } = await supabase.auth.getSession()
       
       if (sessionError) {
-        this.logger.warn('Session error in middleware', sessionError, request)
+        this.logger.warn('Session error in middleware', { error: sessionError.message, code: sessionError.status }, request)
         
         // Handle specific token errors gracefully
         if (sessionError.message.includes('refresh_token_not_found') || 
@@ -271,7 +281,7 @@ export class AuthMiddleware {
       }
       
       if (adminError) {
-        this.logger.warn('Admin check failed in middleware', adminError, request)
+        this.logger.warn('Admin check failed in middleware', { error: adminError.message }, request)
         
         // For authentication-related errors, treat as not admin
         if (adminError.message?.includes('permission') || 
@@ -294,10 +304,10 @@ export class AuthMiddleware {
           if (!masterError) {
             isMasterAdmin = Boolean(masterResult)
           } else {
-            this.logger.warn('Master admin check failed', masterError, request)
+            this.logger.warn('Master admin check failed', { error: masterError.message }, request)
           }
         } catch (masterError) {
-          this.logger.warn('Master admin check error', masterError, request)
+          this.logger.error('Master admin check error', masterError, request)
         }
       }
       
@@ -333,6 +343,8 @@ export class AuthMiddleware {
       if (!await this.checkRateLimit(request)) {
         this.logger.security({
           type: 'RATE_LIMIT',
+          ip: clientIP,
+          userAgent: request.headers.get('user-agent') || 'unknown',
           details: { pathname, clientIP }
         }, request)
         
@@ -364,7 +376,7 @@ export class AuthMiddleware {
           try {
             await supabase.auth.signOut()
           } catch (signOutError) {
-            this.logger.warn('Failed to sign out expired session', signOutError, request)
+            this.logger.error('Failed to sign out expired session', signOutError, request)
           }
         }
       }
@@ -373,6 +385,8 @@ export class AuthMiddleware {
       if (user && !await this.validateCSRF(request, user.id)) {
         this.logger.security({
           type: 'CSRF_VIOLATION',
+          ip: clientIP,
+          userAgent: request.headers.get('user-agent') || 'unknown',
           details: { pathname, userId: user.id }
         }, request)
         
@@ -467,35 +481,35 @@ export class MiddlewareConfigBuilder {
   }
 
   withRoutes(routes: Partial<MiddlewareConfig['routes']>) {
-    this.config.routes = { ...this.config.routes, ...routes }
+    this.config.routes = { ...this.config.routes, ...routes } as MiddlewareConfig['routes']
     return this
   }
 
   withRedirects(redirects: Partial<MiddlewareConfig['redirects']>) {
-    this.config.redirects = { ...this.config.redirects, ...redirects }
+    this.config.redirects = { ...this.config.redirects, ...redirects } as MiddlewareConfig['redirects']
     return this
   }
 
   withFeatures(features: Partial<MiddlewareConfig['features']>) {
-    this.config.features = { ...this.config.features, ...features }
+    this.config.features = { ...this.config.features, ...features } as MiddlewareConfig['features']
     return this
   }
 
   enableMaintenanceMode() {
-    if (!this.config.features) this.config.features = {}
+    if (!this.config.features) this.config.features = {} as MiddlewareConfig['features']
     this.config.features.maintenanceMode = true
     return this
   }
 
   disableRateLimiting() {
-    if (!this.config.features) this.config.features = {}
+    if (!this.config.features) this.config.features = {} as MiddlewareConfig['features']
     this.config.features.rateLimiting = false
     return this
   }
 
   enableDetailedLogging() {
-    if (!this.config.security) this.config.security = {}
-    if (!this.config.security.logging) this.config.security.logging = {}
+    if (!this.config.security) this.config.security = {} as Partial<SecurityConfig>
+    if (!this.config.security.logging) this.config.security.logging = {} as SecurityConfig['logging']
     this.config.security.logging.level = 'detailed'
     this.config.security.logging.includeIPs = true
     return this
@@ -515,6 +529,3 @@ export class MiddlewareConfigBuilder {
 
 // Export configuration builder
 export const createMiddlewareConfig = () => new MiddlewareConfigBuilder()
-
-// Export types
-export type { MiddlewareConfig }

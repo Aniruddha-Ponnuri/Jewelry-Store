@@ -13,15 +13,31 @@ import { createClient } from '@/lib/supabase/server'
  */
 
 export async function GET(request: NextRequest) {
+  const startTime = Date.now()
+  
   try {
     // Verify the request is from Vercel Cron
     const authHeader = request.headers.get('authorization')
     const cronSecret = process.env.CRON_SECRET
 
-    // Only verify in production to prevent cron job abuse
-    if (process.env.NODE_ENV === 'production' && cronSecret) {
+    // Always verify in production, optional in development
+    const isProduction = process.env.NODE_ENV === 'production'
+    
+    if (isProduction) {
+      if (!cronSecret) {
+        console.error('🚫 CRON_SECRET not configured')
+        return NextResponse.json(
+          { 
+            success: false, 
+            error: 'Configuration error',
+            timestamp: new Date().toISOString()
+          },
+          { status: 500 }
+        )
+      }
+      
       if (authHeader !== `Bearer ${cronSecret}`) {
-        console.error('🚫 Unauthorized cron attempt')
+        console.error('🚫 Unauthorized cron attempt from:', request.headers.get('x-forwarded-for') || 'unknown')
         return NextResponse.json(
           { 
             success: false, 
@@ -79,12 +95,14 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    console.log('✅ Cron keep-alive successful - All checks passed:', new Date().toISOString())
+    const duration = Date.now() - startTime
+    console.log(`✅ Cron keep-alive successful - All checks passed in ${duration}ms:`, new Date().toISOString())
 
     return NextResponse.json({
       success: true,
       message: 'Supabase connection maintained successfully',
       timestamp: new Date().toISOString(),
+      duration: `${duration}ms`,
       checks: results,
       nextRun: 'In 24 hours',
       source: 'vercel-cron'

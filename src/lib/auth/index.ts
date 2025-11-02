@@ -15,22 +15,14 @@ export {
   csrfProtection,
   sessionManager,
   inputValidator,
-  DEFAULT_CONFIG as SecurityConfig
+  DEFAULT_CONFIG
 } from './security'
-
-// Enhanced hooks
-export {
-  useSecureAuth,
-  type SecureAuthState,
-  type SecureAuthConfig
-} from '../hooks/useSecureAuth'
 
 // Middleware
 export {
   AuthMiddleware,
   enhancedAuthMiddleware,
-  createMiddlewareConfig,
-  type MiddlewareConfig
+  createMiddlewareConfig
 } from './middleware'
 
 // Server actions
@@ -225,7 +217,7 @@ export const AuthHelpers = {
   /**
    * Calculate security score
    */
-  calculateSecurityScore: (user: { email_confirmed_at?: string } | null, session: { expires_at?: number } | null): number => {
+  calculateSecurityScore: (user: { email_confirmed_at?: string; app_metadata?: { role?: string; roles?: string[] } } | null, session: { expires_at?: number } | null): number => {
     let score = 0
 
     // Base score for valid session
@@ -287,6 +279,7 @@ export const AuthDev = {
       return null
     }
 
+    const { createAuthTestSuite, AuthTestUtils } = await import('./testing')
     const testSuite = createAuthTestSuite()
     const results = await testSuite.runSecurityTestSuite()
     
@@ -306,6 +299,7 @@ export const AuthDev = {
       return null
     }
 
+    const { createAuthPerformanceTester } = await import('./testing')
     const tester = createAuthPerformanceTester()
     const results = await tester.testAuthPerformance(iterations)
     
@@ -325,12 +319,13 @@ export const AuthDev = {
   /**
    * Generate test data (development only)
    */
-  generateTestData: () => {
+  generateTestData: async () => {
     if (process.env.NODE_ENV === 'production') {
       console.warn('Test data generation should not be used in production')
       return null
     }
 
+    const { AuthTestUtils } = await import('./testing')
     return {
       users: Array.from({ length: 5 }, (_, i) => AuthTestUtils.generateTestUser(i + 1)),
       sessions: Array.from({ length: 3 }, (_, i) => AuthTestUtils.generateTestSession(`test-user-${i + 1}`)),
@@ -346,11 +341,11 @@ export const AuthDev = {
 // Add global auth utilities to window in development
 if (typeof window !== 'undefined' && process.env.NODE_ENV !== 'production') {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  (window as any).AuthDev = AuthDev
+  ;(window as any).AuthDev = AuthDev
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  (window as any).AuthValidation = AuthValidation
+  ;(window as any).AuthValidation = AuthValidation
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  (window as any).AuthHelpers = AuthHelpers
+  ;(window as any).AuthHelpers = AuthHelpers
 }
 
 // Types for external use

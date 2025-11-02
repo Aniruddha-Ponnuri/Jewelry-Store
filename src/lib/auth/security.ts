@@ -84,17 +84,18 @@ export class SecureLogger {
     this.config = config
   }
 
-  private sanitizeData(data: Record<string, unknown>): Record<string, unknown> {
+  private sanitizeData(data?: Record<string, unknown>): Record<string, unknown> {
+    if (!data) return {}
     if (!this.config.includeSensitiveData) {
       const sanitized = { ...data }
       delete sanitized.password
       delete sanitized.token
       delete sanitized.refreshToken
       delete sanitized.accessToken
-      if (sanitized.user?.email) {
-        sanitized.user.email = this.maskEmail(sanitized.user.email)
+      if (sanitized.user && typeof sanitized.user === 'object' && 'email' in sanitized.user && typeof sanitized.user.email === 'string') {
+        sanitized.user = { ...sanitized.user as object, email: this.maskEmail(sanitized.user.email) }
       }
-      if (sanitized.email) {
+      if (typeof sanitized.email === 'string') {
         sanitized.email = this.maskEmail(sanitized.email)
       }
       return sanitized
@@ -128,7 +129,7 @@ export class SecureLogger {
       return forwarded.split(',')[0].trim()
     }
     
-    return real || req.ip || 'unknown'
+    return real || 'unknown'
   }
 
   info(message: string, data?: Record<string, unknown>, req?: NextRequest) {
