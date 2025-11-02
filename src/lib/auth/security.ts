@@ -220,6 +220,8 @@ export class RateLimiter {
     if (recentFailures.length >= this.config.maxAttempts) {
       this.logger.security({
         type: 'RATE_LIMIT',
+        ip: req ? this.getClientIP(req) : identifier,
+        userAgent: req?.headers.get('user-agent') || 'unknown',
         details: {
           identifier,
           attempts: recentFailures.length,
@@ -264,7 +266,7 @@ export class RateLimiter {
       return forwarded.split(',')[0].trim()
     }
     
-    return real || req.ip || 'unknown'
+    return real || 'unknown'
   }
 
   private maskEmail(email: string): string {
@@ -289,6 +291,17 @@ export class CSRFProtection {
 
   constructor(logger: SecureLogger = new SecureLogger()) {
     this.logger = logger
+  }
+
+  private getClientIP(req: NextRequest): string {
+    const forwarded = req.headers.get('x-forwarded-for')
+    const real = req.headers.get('x-real-ip')
+    
+    if (forwarded) {
+      return forwarded.split(',')[0].trim()
+    }
+    
+    return real || 'unknown'
   }
 
   async generateToken(userId?: string): Promise<string> {
@@ -331,6 +344,8 @@ export class CSRFProtection {
     if (!token) {
       this.logger.security({
         type: 'CSRF_VIOLATION',
+        ip: this.getClientIP(req),
+        userAgent: req.headers.get('user-agent') || 'unknown',
         details: { reason: 'missing_token' }
       }, req)
       return false
@@ -341,6 +356,8 @@ export class CSRFProtection {
     if (!isValid) {
       this.logger.security({
         type: 'CSRF_VIOLATION',
+        ip: this.getClientIP(req),
+        userAgent: req.headers.get('user-agent') || 'unknown',
         details: { reason: 'invalid_token' }
       }, req)
     }
@@ -589,4 +606,3 @@ export const inputValidator = new InputValidator()
 
 // Export configuration
 export { DEFAULT_CONFIG }
-export type { SecurityConfig, AuthAttempt, SecurityViolation }

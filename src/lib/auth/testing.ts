@@ -13,11 +13,11 @@ import {
 import { createClient } from '@/lib/supabase/client'
 
 // Test configuration
-interface TestConfig {
+export interface TestConfig {
   skipRateLimit?: boolean
   skipCSRF?: boolean
   mockSession?: Record<string, unknown>
-  logLevel?: 'none' | 'minimal' | 'detailed'
+  logLevel?: 'minimal' | 'standard' | 'detailed'
 }
 
 // Test results interfaces
@@ -293,7 +293,7 @@ export class AuthTestSuite {
           errors.push('Input trimming failed')
         }
         
-        if (test.shouldBeTruncated && sanitized.length >= 1000) {
+        if (test.shouldBeTruncated && typeof sanitized === 'string' && sanitized.length >= 1000) {
           errors.push('Input truncation failed')
         }
       }
@@ -616,5 +616,4 @@ export const createAuthTestSuite = (config?: TestConfig) => new AuthTestSuite(co
 export const createAuthIntegrationTester = (isServer?: boolean) => new AuthIntegrationTester(isServer)
 export const createAuthPerformanceTester = () => new AuthPerformanceTester()
 
-// Types for external use
-export type { TestConfig, AuthTestResult, SecurityTestResult }
+// Types already exported at declaration, no need to re-export

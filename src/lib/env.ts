@@ -14,18 +14,18 @@ const schema = z.object({
   NEXT_PUBLIC_KEEP_ALIVE_ENABLED: z
     .string()
     .optional()
-    .transform((val) => val === 'true')
-    .default('true'),
+    .default('true')
+    .transform((val) => val === 'true'),
   NEXT_PUBLIC_KEEP_ALIVE_INTERVAL: z
     .string()
     .optional()
-    .transform((val) => parseInt(val || '7200000', 10)) // 2 hours default
-    .default(7200000),
+    .default('7200000')
+    .transform((val) => parseInt(val, 10)),
   NEXT_PUBLIC_KEEP_ALIVE_BACKGROUND_INTERVAL: z
     .string()
     .optional()
-    .transform((val) => parseInt(val || '600000', 10)) // 10 minutes default
-    .default(600000),
+    .default('600000')
+    .transform((val) => parseInt(val, 10)),
 })
 
 const parsed = schema.safeParse(process.env)
