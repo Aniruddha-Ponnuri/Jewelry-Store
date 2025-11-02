@@ -34,7 +34,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const checkAdminStatus = useCallback(async (currentUser: SupabaseUser | null, retryCount = 0) => {
     if (!currentUser) {
-      console.log('🔐 [AUTH] No user provided for admin check')
+      if (process.env.NODE_ENV === 'development') {
+        console.log('🔐 [AUTH] No user provided for admin check')
+      }
       setIsAdmin(false)
       setIsMasterAdmin(false)
       setAdminChecked(true)
@@ -43,11 +45,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
 
     try {
-      console.log('🔐 [AUTH] Checking admin status for user:', {
-        userId: currentUser.id,
-        email: currentUser.email,
-        retryCount
-      })
+      if (process.env.NODE_ENV === 'development') {
+        console.log('🔐 [AUTH] Checking admin status for user:', {
+          userId: currentUser.id,
+          email: currentUser.email,
+          retryCount
+        })
+      }
 
       // Add small delay on retries to allow session to stabilize
       if (retryCount > 0) {
@@ -59,15 +63,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const { data: { session }, error: sessionError } = await supabase.auth.getSession()
       
       if (sessionError || !session || session.user.id !== currentUser.id) {
-        console.log('🔐 [AUTH] Invalid session during admin check:', {
-          sessionError: sessionError?.message,
-          hasSession: !!session,
-          sessionUserId: session?.user?.id,
-          currentUserId: currentUser.id
-        })
+        if (process.env.NODE_ENV === 'development') {
+          console.log('🔐 [AUTH] Invalid session during admin check:', {
+            sessionError: sessionError?.message,
+            hasSession: !!session,
+            sessionUserId: session?.user?.id,
+            currentUserId: currentUser.id
+          })
+        }
         
         if (retryCount < 1) { // Reduced from 2 to 1 retry
-          console.log('🔄 [AUTH] Retrying admin check with fresh session...')
+          if (process.env.NODE_ENV === 'development') {
+            console.log('🔄 [AUTH] Retrying admin check with fresh session...')
+          }
           setTimeout(() => checkAdminStatus(currentUser, retryCount + 1), 1000) // 1 second delay
           return
         }
@@ -306,8 +314,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setMounted(true)
     
     const getUser = async () => {
+      const isDev = process.env.NODE_ENV === 'development'
       try {
-        console.log('🚀 [AUTH] Getting initial user session...')
+        if (isDev) console.log('🚀 [AUTH] Getting initial user session...')
         
         // First, try to get the session
         const { data: { session }, error: sessionError } = await supabase.auth.getSession()
@@ -317,14 +326,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
         
         if (session?.user) {
-          console.log('✅ [AUTH] Found existing session for user:', {
-            userId: session.user.id,
-            email: session.user.email,
-            expiresAt: session.expires_at ? new Date(session.expires_at * 1000).toISOString() : 'unknown'
-          })
+          if (isDev) {
+            console.log('✅ [AUTH] Found existing session for user:', {
+              userId: session.user.id,
+              email: session.user.email,
+              expiresAt: session.expires_at ? new Date(session.expires_at * 1000).toISOString() : 'unknown'
+            })
+          }
           setUser(session.user)
           
-          // Get user profile
+          // Set loading false immediately after user is set
+          setLoading(false)
+          
+          // Get user profile in background
           const { data: profile } = await supabase
             .from('users')
             .select('*')
@@ -332,17 +346,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             .single()
           setUserProfile(profile)
           
-          console.log('👤 [AUTH] User profile loaded:', profile ? 'success' : 'no profile found')
+          if (isDev) console.log('👤 [AUTH] User profile loaded:', profile ? 'success' : 'no profile found')
           
-          // Check admin status immediately
+          // Check admin status in background
           checkAdminStatus(session.user)
         } else {
-          console.log('❌ [AUTH] No existing session found')
+          if (isDev) console.log('❌ [AUTH] No existing session found')
           setUser(null)
           setUserProfile(null)
           setIsAdmin(false)
           setIsMasterAdmin(false)
           setAdminChecked(true)
+          setLoading(false)
         }
       } catch (error) {
         console.error('💥 [AUTH] Error getting user:', error)
@@ -351,7 +366,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setIsAdmin(false)
         setIsMasterAdmin(false)
         setAdminChecked(true)
-      } finally {
         setLoading(false)
       }
     }

@@ -10,14 +10,12 @@ export default function LoginRedirect() {
 
   useEffect(() => {
     if (!loading && user) {
-      // Small delay to ensure auth state is properly set
-      setTimeout(() => {
-        if (isAdmin) {
-          router.push('/admin/users')
-        } else {
-          router.push('/')
-        }
-      }, 100)
+      // Immediate redirect - no delay needed
+      if (isAdmin) {
+        router.push('/admin/users')
+      } else {
+        router.push('/')
+      }
     }
   }, [user, isAdmin, loading, router])
 
