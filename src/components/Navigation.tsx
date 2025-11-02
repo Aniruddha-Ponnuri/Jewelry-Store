@@ -60,14 +60,26 @@ export default function Navigation() {
 
   const NavItems = () => (
     <>
-      <Link href="/" className="text-sm font-medium hover:text-amber-600 transition-colors">
+      <Link 
+        href="/" 
+        className="text-sm font-medium hover:text-amber-600 transition-colors"
+        prefetch={true}
+      >
         Home
       </Link>
-      <Link href="/products" className="text-sm font-medium hover:text-amber-600 transition-colors">
+      <Link 
+        href="/products" 
+        className="text-sm font-medium hover:text-amber-600 transition-colors"
+        prefetch={true}
+      >
         Products
       </Link>
       {user && (
-        <Link href="/bookmarks" className="text-sm font-medium hover:text-amber-600 transition-colors">
+        <Link 
+          href="/bookmarks" 
+          className="text-sm font-medium hover:text-amber-600 transition-colors"
+          prefetch={true}
+        >
           Bookmarks
         </Link>
       )}
@@ -75,6 +87,7 @@ export default function Navigation() {
         <Link 
           href="/admin" 
           className="admin-desktop-button flex items-center gap-2"
+          prefetch={true}
         >
           🛡️ Admin Dashboard
         </Link>

@@ -2,6 +2,7 @@
 
 import { createContext, useContext, useEffect, useState, useCallback } from 'react'
 import { User as SupabaseUser } from '@supabase/supabase-js'
+import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { User } from '@/types/database'
 import { getAdminStatusWithCache, clearAdminCache } from '@/lib/adminSession'
@@ -21,6 +22,7 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
+  const router = useRouter()
   const [user, setUser] = useState<SupabaseUser | null>(null)
   const [userProfile, setUserProfile] = useState<User | null>(null)
   const [isAdmin, setIsAdmin] = useState(false)
@@ -421,10 +423,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signOut = async () => {
     try {
-      console.log('Starting logout process...')
+      console.log('🚪 [AUTH] Starting logout process...')
       
       // Clear client-side auth state first
-      console.log('Clearing client-side state...')
+      console.log('🧹 [AUTH] Clearing client-side state...')
       setUser(null)
       setUserProfile(null)
       setIsAdmin(false)
@@ -435,7 +437,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       clearAdminCache()
       
       // Create promises for both logout operations
-      console.log('Initiating Supabase and API logout...')
+      console.log('📡 [AUTH] Initiating Supabase and API logout...')
       const supabaseSignOut = supabase.auth.signOut()
       const apiLogout = fetch('/api/auth/logout', {
         method: 'POST',
@@ -452,24 +454,33 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       
       // Log results
       if (supabaseResult.status === 'fulfilled') {
-        console.log('Supabase signOut successful')
+        console.log('✅ [AUTH] Supabase signOut successful')
       } else {
-        console.error('Supabase signOut error:', supabaseResult.reason)
+        console.error('❌ [AUTH] Supabase signOut error:', supabaseResult.reason)
       }
       
       if (apiResult.status === 'fulfilled') {
-        console.log('API logout successful')
+        console.log('✅ [AUTH] API logout successful')
       } else {
-        console.error('API logout error:', apiResult.reason)
+        console.error('❌ [AUTH] API logout error:', apiResult.reason)
       }
       
-      console.log('Forcing page reload...')
-      // Force a full page reload to ensure all state is cleared
-      window.location.href = '/'
+      console.log('🔄 [AUTH] Navigating to homepage...')
+      // Use Next.js router for smooth navigation
+      router.push('/')
+      router.refresh() // Force refresh to clear cached data
+      
+      // Small delay then force reload to ensure everything is cleared
+      setTimeout(() => {
+        window.location.href = '/'
+      }, 100)
     } catch (error) {
-      console.error('Logout error:', error)
+      console.error('❌ [AUTH] Logout error:', error)
       // Force reload anyway to clear state
-      window.location.href = '/'
+      router.push('/')
+      setTimeout(() => {
+        window.location.href = '/'
+      }, 100)
     }
   }
 

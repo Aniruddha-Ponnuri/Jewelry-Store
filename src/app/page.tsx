@@ -7,6 +7,10 @@ import Link from 'next/link'
 import { Sparkles, ArrowRight } from 'lucide-react'
 import { Suspense } from 'react'
 
+// Force dynamic rendering to ensure fresh content after logout
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
+
 // Loading component for featured products
 function FeaturedProductsSkeleton() {
   return (
@@ -26,46 +30,94 @@ function FeaturedProductsSkeleton() {
 }
 
 async function FeaturedProducts() {
-  const supabase = await createClient()
-  
-  const { data: featuredProducts, error } = await supabase
-    .from('products')
-    .select('*')
-    .eq('is_in_stock', true)
-    .order('created_at', { ascending: false })
-    .limit(6)
+  try {
+    const supabase = await createClient()
+    
+    const { data: featuredProducts, error } = await supabase
+      .from('products')
+      .select('*')
+      .eq('is_in_stock', true)
+      .order('created_at', { ascending: false })
+      .limit(6)
 
-  if (error || !featuredProducts || featuredProducts.length === 0) {
-    return null
+    // Log for debugging
+    console.log('Featured products query:', { 
+      count: featuredProducts?.length, 
+      error: error?.message 
+    })
+
+    // Show empty state if no products
+    if (!featuredProducts || featuredProducts.length === 0) {
+      return (
+        <section className="py-12 sm:py-16 px-3 sm:px-4 bg-white">
+          <div className="container mx-auto">
+            <div className="text-center mb-8 sm:mb-12">
+              <h2 className="text-2xl sm:text-3xl font-bold mb-3 sm:mb-4 text-gray-900">
+                Featured Products
+              </h2>
+              <p className="text-sm sm:text-base text-gray-600 max-w-2xl mx-auto leading-relaxed">
+                {error 
+                  ? `Unable to load products: ${error.message}` 
+                  : 'No products available at the moment. Check back soon!'}
+              </p>
+            </div>
+            <div className="text-center">
+              <Button size="lg" asChild className="touch-target">
+                <Link href="/products">Browse All Products</Link>
+              </Button>
+            </div>
+          </div>
+        </section>
+      )
+    }
+
+    return (
+      <section className="py-12 sm:py-16 px-3 sm:px-4 bg-white">
+        <div className="container mx-auto">
+          <div className="text-center mb-8 sm:mb-12">
+            <h2 className="text-2xl sm:text-3xl font-bold mb-3 sm:mb-4 text-gray-900">
+              Featured Products
+            </h2>
+            <p className="text-sm sm:text-base text-gray-600 max-w-2xl mx-auto leading-relaxed">
+              Discover our most popular and newest jewelry pieces, carefully selected for their exceptional beauty and craftsmanship.
+            </p>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 lg:gap-8">
+            {featuredProducts.map((product: Product) => (
+              <ProductCard key={product.product_id} product={product} />
+            ))}
+          </div>
+          <div className="text-center mt-8 sm:mt-12">
+            <Button size="lg" asChild className="touch-target group">
+              <Link href="/products" className="flex items-center justify-center gap-2">
+                <span className="text-sm sm:text-base">View All Products</span>
+                <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+              </Link>
+            </Button>
+          </div>
+        </div>
+      </section>
+    )
+  } catch (err) {
+    console.error('FeaturedProducts error:', err)
+    return (
+      <section className="py-12 sm:py-16 px-3 sm:px-4 bg-white">
+        <div className="container mx-auto">
+          <div className="text-center">
+            <h2 className="text-2xl sm:text-3xl font-bold mb-3 sm:mb-4 text-gray-900">
+              Featured Products
+            </h2>
+            <p className="text-sm sm:text-base text-red-600 max-w-2xl mx-auto leading-relaxed mb-6">
+              Failed to load products. Please try refreshing the page.
+            </p>
+            <Button size="lg" asChild className="touch-target">
+              <Link href="/products">Browse All Products</Link>
+            </Button>
+          </div>
+        </div>
+      </section>
+    )
   }
-
-  return (
-    <section className="py-12 sm:py-16 px-3 sm:px-4 bg-white">
-      <div className="container mx-auto">
-        <div className="text-center mb-8 sm:mb-12">
-          <h2 className="text-2xl sm:text-3xl font-bold mb-3 sm:mb-4 text-gray-900">
-            Featured Products
-          </h2>
-          <p className="text-sm sm:text-base text-gray-600 max-w-2xl mx-auto leading-relaxed">
-            Discover our most popular and newest jewelry pieces, carefully selected for their exceptional beauty and craftsmanship.
-          </p>
-        </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 lg:gap-8">
-          {featuredProducts.map((product: Product) => (
-            <ProductCard key={product.product_id} product={product} />
-          ))}
-        </div>
-        <div className="text-center mt-8 sm:mt-12">
-          <Button size="lg" asChild className="touch-target group">
-            <Link href="/products" className="flex items-center justify-center gap-2">
-              <span className="text-sm sm:text-base">View All Products</span>
-              <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
-            </Link>
-          </Button>
-        </div>
-      </div>
-    </section>
-  )
 }
 
 export default async function HomePage() {
