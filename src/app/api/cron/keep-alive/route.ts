@@ -4,12 +4,12 @@ import { createClient } from '@/lib/supabase/server'
 /**
  * Vercel Cron Job - Keep Supabase Connection Alive
  * 
- * This endpoint is called automatically by Vercel Cron every 12 hours
+ * This endpoint is called automatically by Vercel Cron daily
  * to ensure the Supabase database connection stays active even when
  * no users are visiting the website.
  * 
- * Schedule: Every 12 hours (00:00 and 12:00 UTC)
- * Cron Expression: 0 */12 * * *
+ * Schedule: Daily at midnight UTC (00:00)
+ * Cron Expression: 0 0 * * *
  */
 
 export async function GET(request: NextRequest) {
@@ -86,7 +86,7 @@ export async function GET(request: NextRequest) {
       message: 'Supabase connection maintained successfully',
       timestamp: new Date().toISOString(),
       checks: results,
-      nextRun: 'In 12 hours',
+      nextRun: 'In 24 hours',
       source: 'vercel-cron'
     })
 
