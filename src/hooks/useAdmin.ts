@@ -1,9 +1,12 @@
 import { useState, useEffect, useCallback } from 'react'
-import { useAuth } from '@/contexts/AuthContext'
+import { useRobustAuth } from '@/hooks/useRobustAuth'
 import { getAdminStatusWithCache } from '@/lib/adminSession'
 
 export function useAdmin() {
-  const { user, isAdmin: contextIsAdmin, loading: authLoading } = useAuth()
+  const { user, isAdmin: contextIsAdmin, loading: authLoading } = useRobustAuth({
+    requireAuth: false,
+    requireAdmin: false
+  })
   const [isAdmin, setIsAdmin] = useState(false)
   const [loading, setLoading] = useState(true)
   const [lastCheckedUser, setLastCheckedUser] = useState<string | null>(null)

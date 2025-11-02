@@ -1,11 +1,14 @@
 'use client'
 
 import { useEffect } from 'react'
-import { useAuth } from '@/contexts/AuthContext'
+import { useRobustAuth } from '@/hooks/useRobustAuth'
 import { Loader2 } from 'lucide-react'
 
 export default function LogoutPage() {
-  const { signOut } = useAuth()
+  const { signOut } = useRobustAuth({
+    requireAuth: false,
+    requireAdmin: false
+  })
 
   useEffect(() => {
     const performLogout = async () => {

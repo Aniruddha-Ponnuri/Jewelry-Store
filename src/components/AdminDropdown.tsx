@@ -14,14 +14,13 @@ import { Shield, Package, FolderOpen, Users, RefreshCw, ChevronDown, Activity } 
 import Link from 'next/link'
 
 export default function AdminDropdown() {
-  const auth = useRobustAuth({
+  const { isAdmin, isMasterAdmin, refreshAdminStatus } = useRobustAuth({
     requireAuth: false,
-    requireAdmin: false,
-    refreshInterval: 60000
+    requireAdmin: false
   })
 
   // Don't render if user is not admin
-  if (!auth.isAdmin) {
+  if (!isAdmin) {
     return null
   }
 
@@ -34,7 +33,7 @@ export default function AdminDropdown() {
         >
           <Shield className="w-4 h-4" />
           <span>Admin</span>
-          {auth.isMasterAdmin && (
+          {isMasterAdmin && (
             <Badge variant="outline" className="bg-purple-50 text-purple-700 border-purple-200 text-xs px-1 py-0">
               Master
             </Badge>
@@ -50,24 +49,22 @@ export default function AdminDropdown() {
             <div className="flex items-center gap-2">
               <Shield className="w-4 h-4 text-amber-600" />
               <span className="text-sm font-semibold text-amber-700">
-                {auth.isMasterAdmin ? 'Master Admin' : 'Admin Panel'}
+                {isMasterAdmin ? 'Master Admin' : 'Admin Panel'}
               </span>
             </div>
             <Button
               variant="ghost"
               size="sm"
-              onClick={auth.refreshAuth}
+              onClick={refreshAdminStatus}
               className="h-6 w-6 p-0 hover:bg-amber-200"
               title="Refresh admin status"
             >
               <RefreshCw className="w-3 h-3 text-amber-600" />
             </Button>
           </div>
-          {auth.sessionValid && (
-            <Badge variant="outline" className="bg-green-50 text-green-700 border-green-300 text-xs mt-1">
-              ✓ Verified
-            </Badge>
-          )}
+          <Badge variant="outline" className="bg-green-50 text-green-700 border-green-300 text-xs mt-1">
+            ✓ Verified
+          </Badge>
         </div>
 
         <DropdownMenuSeparator />
@@ -107,7 +104,7 @@ export default function AdminDropdown() {
         </DropdownMenuItem>
 
         {/* Master Admin Only */}
-        {auth.isMasterAdmin && (
+        {isMasterAdmin && (
           <>
             <DropdownMenuSeparator />
             <DropdownMenuItem asChild>
@@ -144,14 +141,8 @@ export default function AdminDropdown() {
         <div className="px-3 py-2 text-xs text-gray-500 bg-gray-50">
           <div className="flex justify-between items-center">
             <span>Session Status</span>
-            <span className="text-green-600">Active</span>
+            <span className="text-green-600">● Active</span>
           </div>
-          {auth.lastVerification > 0 && (
-            <div className="flex justify-between items-center mt-1">
-              <span>Last Check</span>
-              <span>{new Date(auth.lastVerification).toLocaleTimeString()}</span>
-            </div>
-          )}
         </div>
       </DropdownMenuContent>
     </DropdownMenu>

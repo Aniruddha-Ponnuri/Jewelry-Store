@@ -3,7 +3,7 @@
 import { useState, memo } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
-import { useAuth } from '@/contexts/AuthContext'
+import { useRobustAuth } from '@/hooks/useRobustAuth'
 import { createClient } from '@/lib/supabase/client'
 import { Product } from '@/types/database'
 import { Card, CardContent, CardFooter } from '@/components/ui/card'
@@ -21,7 +21,10 @@ interface ProductCardProps {
 }
 
 function ProductCard({ product, isBookmarked = false, onBookmarkChange, priority = false }: ProductCardProps) {
-  const { user } = useAuth()
+  const { user } = useRobustAuth({
+    requireAuth: false,
+    requireAdmin: false
+  })
   const [bookmarked, setBookmarked] = useState(isBookmarked)
   const [loading, setLoading] = useState(false)
   const [imageLoading, setImageLoading] = useState(true)

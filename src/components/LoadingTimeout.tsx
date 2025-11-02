@@ -1,13 +1,16 @@
 'use client'
 
-import { useAuth } from '@/contexts/AuthContext'
+import { useRobustAuth } from '@/hooks/useRobustAuth'
 
 /**
  * LoadingTimeout Component
  * Shows loading state for auth initialization
  */
 export function LoadingTimeout({ children }: { children: React.ReactNode }) {
-  const { loading } = useAuth()
+  const { loading } = useRobustAuth({
+    requireAuth: false,
+    requireAdmin: false
+  })
 
   // Show loading only if actually loading
   if (loading) {

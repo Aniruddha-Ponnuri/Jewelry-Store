@@ -1,6 +1,5 @@
 'use client'
 
-import { useAuth } from '@/contexts/AuthContext'
 import { useRobustAuth } from '@/hooks/useRobustAuth'
 import { Button } from '@/components/ui/button'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
@@ -10,8 +9,7 @@ import Link from 'next/link'
 import { useState } from 'react'
 
 export default function ClientNavigation() {
-  const { user, signOut } = useAuth()
-  const auth = useRobustAuth({
+  const { user, signOut, isAdmin, isMasterAdmin } = useRobustAuth({
     requireAuth: false,
     requireAdmin: false,
     refreshInterval: 60000
@@ -74,11 +72,11 @@ export default function ClientNavigation() {
         <div className="p-3 border-b border-gray-100">
           <div className="flex flex-col space-y-1">
             <p className="font-medium text-sm text-gray-900 truncate">{user.email}</p>
-            {auth.isAdmin && (
+            {isAdmin && (
               <div className="flex items-center gap-1">
                 <Shield className="h-3 w-3 text-amber-600" />
                 <span className="text-xs text-amber-600 font-medium">
-                  {auth.isMasterAdmin ? 'Master Administrator' : 'Administrator'}
+                  {isMasterAdmin ? 'Master Administrator' : 'Administrator'}
                 </span>
               </div>
             )}
@@ -93,7 +91,7 @@ export default function ClientNavigation() {
             </Link>
           </DropdownMenuItem>
 
-          {auth.isAdmin && (
+          {isAdmin && (
             <>
               <div className="dropdown-separator-custom"></div>
               
@@ -102,7 +100,7 @@ export default function ClientNavigation() {
                 <div className="flex items-center gap-2">
                   <Shield className="h-4 w-4 text-amber-600" />
                   <span className="text-sm font-semibold text-amber-700">
-                    {auth.isMasterAdmin ? 'Master Admin Panel' : 'Admin Panel'}
+                    {isMasterAdmin ? 'Master Admin Panel' : 'Admin Panel'}
                   </span>
                 </div>
               </div>
@@ -127,7 +125,7 @@ export default function ClientNavigation() {
                   <span className="font-medium">📂 Manage Categories</span>
                 </Link>
               </DropdownMenuItem>
-              {auth.isMasterAdmin && (
+              {isMasterAdmin && (
                 <DropdownMenuItem asChild>
                   <Link href="/admin/users" className="dropdown-item-custom admin-dropdown-secondary">
                     <Shield className="mr-3 h-4 w-4 text-amber-600" />

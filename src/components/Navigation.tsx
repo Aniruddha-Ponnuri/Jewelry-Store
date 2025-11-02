@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { useAuth } from '@/contexts/AuthContext'
+import { useRobustAuth } from '@/hooks/useRobustAuth'
 import { Button } from '@/components/ui/button'
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet'
 import { Badge } from '@/components/ui/badge'
@@ -11,7 +11,10 @@ import ClientNavigation from './ClientNavigation'
 import AdminDropdown from './AdminDropdown'
 
 export default function Navigation() {
-  const { user, isAdmin, isMasterAdmin, signOut, refreshAdminStatus } = useAuth()
+  const { user, isAdmin, isMasterAdmin, signOut, refreshAdminStatus } = useRobustAuth({
+    requireAuth: false,
+    requireAdmin: false
+  })
   const [isOpen, setIsOpen] = useState(false)
   const [isMobileLoggingOut, setIsMobileLoggingOut] = useState(false)
 

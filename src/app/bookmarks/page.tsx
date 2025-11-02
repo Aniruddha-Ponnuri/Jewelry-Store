@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { useAuth } from '@/contexts/AuthContext'
+import { useRobustAuth } from '@/hooks/useRobustAuth'
 import { createClient } from '@/lib/supabase/client'
 import { Product } from '@/types/database'
 import ProductCard from '@/components/ProductCard'
@@ -11,7 +11,10 @@ import { HeartOff } from 'lucide-react'
 import Link from 'next/link'
 
 export default function BookmarksPage() {
-  const { user } = useAuth()
+  const { user } = useRobustAuth({
+    requireAuth: true,
+    requireAdmin: false
+  })
   const [products, setProducts] = useState<Product[]>([])
   const [loading, setLoading] = useState(true)
   const supabase = createClient()

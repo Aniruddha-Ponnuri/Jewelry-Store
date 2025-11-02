@@ -2,10 +2,13 @@
 
 import { useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import { useAuth } from '@/contexts/AuthContext'
+import { useRobustAuth } from '@/hooks/useRobustAuth'
 
 export function AuthSessionProvider({ children }: { children: React.ReactNode }) {
-  const { refreshAdminStatus } = useAuth()
+  const { refreshAdminStatus } = useRobustAuth({
+    requireAuth: false,
+    requireAdmin: false
+  })
   
   useEffect(() => {
     const supabase = createClient()

@@ -2,10 +2,13 @@
 
 import { useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { useAuth } from '@/contexts/AuthContext'
+import { useRobustAuth } from '@/hooks/useRobustAuth'
 
 export default function LoginRedirect() {
-  const { user, isAdmin, loading } = useAuth()
+  const { user, isAdmin, loading } = useRobustAuth({
+    requireAuth: false,
+    requireAdmin: false
+  })
   const router = useRouter()
 
   useEffect(() => {

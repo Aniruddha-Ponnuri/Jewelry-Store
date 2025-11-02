@@ -265,9 +265,46 @@ export function useRobustAuth(options: RobustAuthOptions = {}) {
     }
   }, [updateAuthState])
 
+  // Sign out function
+  const signOut = useCallback(async () => {
+    try {
+      console.log('🔐 [ROBUST AUTH] 👋 Starting sign out...')
+      const supabase = createClient()
+      const { error } = await supabase.auth.signOut()
+      
+      if (error) {
+        console.error('🔐 [ROBUST AUTH] ❌ Sign out error:', error)
+        throw error
+      }
+      
+      console.log('✅ [ROBUST AUTH] Sign out successful')
+      
+      // Clear state
+      setState({
+        isAuthenticated: false,
+        isAdmin: false,
+        isMasterAdmin: false,
+        user: null,
+        loading: false,
+        error: null,
+        sessionValid: false,
+        lastVerification: Date.now()
+      })
+      
+      // Redirect to home
+      router.push('/')
+    } catch (error) {
+      console.error('💥 [ROBUST AUTH] Error during sign out:', error)
+      // Force redirect even on error
+      window.location.href = '/'
+    }
+  }, [router])
+
   return {
     ...state,
     refreshAuth,
+    signOut,
+    refreshAdminStatus: refreshAuth, // Alias for compatibility
     isReady: !state.loading,
     // Helper functions
     requiresAuth: requireAuth,

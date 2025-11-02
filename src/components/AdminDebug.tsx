@@ -1,7 +1,6 @@
 'use client'
 
 import { useRobustAuth } from '@/hooks/useRobustAuth'
-import { useAuth } from '@/contexts/AuthContext'
 import { useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
@@ -172,7 +171,7 @@ export default function AdminDebug() {
     refreshInterval: 60000
   })
   
-  const { user } = useAuth()
+  const { user } = auth
   const [manualCheck, setManualCheck] = useState<ManualCheckResult | null>(null)
   const [comprehensiveTest, setComprehensiveTest] = useState<ComprehensiveTestResult | null>(null)
   const [loading, setLoading] = useState(false)
