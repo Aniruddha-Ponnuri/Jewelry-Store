@@ -1,8 +1,8 @@
 import { createClient } from '@/lib/supabase/server'
 import { Product } from '@/types/database'
 import ProductCard from '@/components/ProductCard'
+import CategoryLink from '@/components/CategoryLink'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent } from '@/components/ui/card'
 import Link from 'next/link'
 import { Sparkles, ArrowRight } from 'lucide-react'
 
@@ -12,6 +12,7 @@ export const revalidate = 0
 
 async function FeaturedProducts() {
   try {
+    console.log('⭐ [FEATURED PRODUCTS] Starting featured products query...')
     const supabase = await createClient()
     
     // Add timeout to prevent infinite loading
@@ -31,11 +32,20 @@ async function FeaturedProducts() {
       timeoutPromise
     ]) as { data: Product[] | null, error: Error | null }
 
-    // Log for debugging
-    console.log('Featured products query:', { 
-      count: featuredProducts?.length, 
-      error: error?.message 
+    // Log for debugging - this appears in Vercel logs
+    console.log('⭐ [FEATURED PRODUCTS] Query completed:', { 
+      count: featuredProducts?.length || 0, 
+      hasError: !!error,
+      errorMessage: error?.message,
+      timestamp: new Date().toISOString()
     })
+
+    if (error) {
+      console.error('❌ [FEATURED PRODUCTS] Database error:', {
+        message: error.message,
+        error: error
+      })
+    }
 
     // Show empty state if no products
     if (!featuredProducts || featuredProducts.length === 0) {
@@ -123,10 +133,10 @@ export default async function HomePage() {
 
   // Fallback categories if none exist in database
   const fallbackCategories = [
-    { name: 'Rings', emoji: '💍', href: '/products?category=rings' },
-    { name: 'Necklaces', emoji: '📿', href: '/products?category=necklaces' },
-    { name: 'Earrings', emoji: '👂', href: '/products?category=earrings' },
-    { name: 'Bracelets', emoji: '💎', href: '/products?category=bracelets' },
+    { name: 'Rings', emoji: '💍', href: '/products?category=rings', dbName: 'rings' },
+    { name: 'Necklaces', emoji: '📿', href: '/products?category=necklaces', dbName: 'necklaces' },
+    { name: 'Earrings', emoji: '👂', href: '/products?category=earrings', dbName: 'earrings' },
+    { name: 'Bracelets', emoji: '💎', href: '/products?category=bracelets', dbName: 'bracelets' },
   ]
 
   // Use categories from DB if available, otherwise use fallback
@@ -134,9 +144,17 @@ export default async function HomePage() {
     ? categoriesFromDB.map(cat => ({
         name: cat.description || cat.name,
         emoji: cat.emoji || getEmojiForCategory(cat.name),
-        href: `/products?category=${cat.name.toLowerCase()}`
+        href: `/products?category=${cat.name.toLowerCase()}`,
+        dbName: cat.name // Store original DB name for logging
       }))
     : fallbackCategories
+
+  console.log('🏠 [HOME PAGE] Categories loaded:', {
+    source: categoriesFromDB && categoriesFromDB.length > 0 ? 'database' : 'fallback',
+    count: categories.length,
+    categories: categories.map(c => c.name),
+    timestamp: new Date().toISOString()
+  })
 
   // Pick a single random category for consistent UX in the hero buttons
   const randomCategory = categories[Math.floor(Math.random() * categories.length)]
@@ -194,18 +212,13 @@ export default async function HomePage() {
           </h2>
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
             {categories.map((category) => (
-              <Link key={category.name} href={category.href} className="group">
-                <Card className="hover:shadow-lg transition-all duration-300 hover:scale-105 cursor-pointer group-focus:ring-2 group-focus:ring-amber-500 group-focus:ring-offset-2">
-                  <CardContent className="p-4 sm:p-6 text-center">
-                    <div className="text-3xl sm:text-4xl mb-3 sm:mb-4 group-hover:scale-110 transition-transform duration-300">
-                      {category.emoji}
-                    </div>
-                    <h3 className="font-semibold text-base sm:text-lg text-gray-900">
-                      {category.name}
-                    </h3>
-                  </CardContent>
-                </Card>
-              </Link>
+              <CategoryLink 
+                key={category.name} 
+                name={category.name}
+                emoji={category.emoji}
+                href={category.href}
+                dbName={category.dbName}
+              />
             ))}
           </div>
         </div>

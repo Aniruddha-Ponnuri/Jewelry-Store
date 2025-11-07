@@ -21,15 +21,59 @@ function ProductGridSkeleton() {
   )
 }
 
-export default async function ProductsPage() {
+type SearchParams = Promise<{ [key: string]: string | string[] | undefined }>
+
+export default async function ProductsPage({
+  searchParams,
+}: {
+  searchParams: SearchParams
+}) {
+  const params = await searchParams
+  const categoryParam = params.category
+  const category = typeof categoryParam === 'string' ? categoryParam : undefined
+
+  console.log('🔍 [PRODUCTS PAGE] Loading products with params:', {
+    category,
+    rawParams: params,
+    timestamp: new Date().toISOString()
+  })
+
   const supabase = await createClient()
-    // Fetch all products with optimized query
-  const { data: products, error } = await supabase
+  
+  // Build query with optional category filter
+  let query = supabase
     .from('products')
     .select('*')
     .order('created_at', { ascending: false })
 
+  // Apply category filter if present (case-insensitive match)
+  if (category) {
+    console.log('🏷️ [PRODUCTS PAGE] Filtering by category:', category)
+    // Use ilike for case-insensitive matching
+    query = query.ilike('category', category)
+  } else {
+    console.log('📦 [PRODUCTS PAGE] Loading all products (no category filter)')
+  }
+
+  const { data: products, error } = await query
+
+  console.log('📊 [PRODUCTS PAGE] Query result:', {
+    productsCount: products?.length || 0,
+    hasError: !!error,
+    errorMessage: error?.message,
+    category,
+    timestamp: new Date().toISOString()
+  })
+
   if (error) {
+    console.error('❌ [PRODUCTS PAGE] Database error:', {
+      message: error.message,
+      details: error.details,
+      hint: error.hint,
+      code: error.code,
+      category
+    })
+    
     return (
       <div className="container mx-auto px-3 sm:px-4 py-4 sm:py-6 lg:py-8">
         <div className="text-center space-y-4">
@@ -42,16 +86,29 @@ export default async function ProductsPage() {
     )
   }
 
+  // Get category display name
+  const categoryDisplayName = category 
+    ? category.charAt(0).toUpperCase() + category.slice(1) 
+    : null
+
+  console.log('✅ [PRODUCTS PAGE] Rendering products page:', {
+    totalProducts: products?.length || 0,
+    category: categoryDisplayName || 'All',
+    timestamp: new Date().toISOString()
+  })
+
   return (
     <div className="container mx-auto px-3 sm:px-4 py-4 sm:py-6 lg:py-8">
       {/* Header Section */}
       <div className="text-center mb-6 sm:mb-8 lg:mb-12">
         <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold mb-2 sm:mb-4 text-gray-900">
-          Our Jewelry Collection
+          {categoryDisplayName ? `${categoryDisplayName} Collection` : 'Our Jewelry Collection'}
         </h1>
         <p className="text-sm sm:text-base lg:text-lg text-gray-600 max-w-2xl mx-auto">
-          Discover our exquisite range of handcrafted silver jewelry, each piece meticulously crafted 
-          with traditional Indian artistry and modern design sensibilities.
+          {categoryDisplayName 
+            ? `Browse our exquisite ${categoryDisplayName.toLowerCase()} collection, handcrafted with care.`
+            : 'Discover our exquisite range of handcrafted silver jewelry, each piece meticulously crafted with traditional Indian artistry and modern design sensibilities.'
+          }
         </p>
       </div>
 

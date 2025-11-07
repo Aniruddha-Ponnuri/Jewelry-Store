@@ -33,8 +33,8 @@ const middlewareConfig = createMiddlewareConfig()
       },
     },
     logging: {
-      level: isProduction ? 'minimal' : 'standard',
-      includeIPs: !isProduction,
+      level: 'detailed', // CHANGED: Always detailed for private project
+      includeIPs: true, // Always include IPs for debugging
       includeSensitiveData: false,
     },
   })
