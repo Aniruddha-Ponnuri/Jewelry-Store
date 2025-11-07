@@ -6,6 +6,7 @@ import { LoadingTimeout } from '@/components/LoadingTimeout'
 import Navigation from '@/components/Navigation'
 import Footer from '@/components/Footer'
 import { Toaster } from 'sonner'
+import { SpeedInsights } from '@vercel/speed-insights/next'
 import './globals.css'
 
 const inter = Inter({
@@ -105,6 +106,7 @@ export default function RootLayout({
                 },
               }}
             />
+            <SpeedInsights />
           </AuthSessionProvider>
         </AuthProvider>
       </body>
