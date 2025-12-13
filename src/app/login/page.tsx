@@ -2,69 +2,92 @@
 
 import { useState, FormEvent } from 'react'
 import Link from 'next/link'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Mail, Lock, Loader2 } from 'lucide-react'
-import LoginRedirect from './LoginRedirect'
+import { useAuth } from '@/contexts/AuthContext'
+import { useEffect } from 'react'
 
 export default function Login() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
-  
+  const router = useRouter()
+  const searchParams = useSearchParams()
+  const { user, loading: authLoading } = useAuth()
+
+  // Redirect if already logged in
+  useEffect(() => {
+    if (!authLoading && user) {
+      const redirect = searchParams.get('redirect') || '/'
+      router.push(redirect)
+    }
+  }, [user, authLoading, router, searchParams])
+
+  // Show inactivity message if applicable
+  const reason = searchParams.get('reason')
+
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     setError('')
     setLoading(true)
-    
+
     try {
-      console.log('🔐 [LOGIN] Submitting login for:', email)
-      
       const response = await fetch('/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password }),
       })
-      
+
       const data = await response.json()
-      
+
       if (!response.ok) {
-        console.error('❌ [LOGIN] Login failed:', data.error)
         setError(data.error || 'Login failed')
         setLoading(false)
         return
       }
-      
-      console.log('✅ [LOGIN] Login successful!')
-      console.log('📊 [LOGIN] Cookies set:', document.cookie.includes('sb-jfuhcgnjqfeznqpbloze-auth-token'))
-      
-      // Force a hard redirect to ensure auth state refreshes
-      console.log('� [LOGIN] Forcing page refresh...')
-      window.location.href = '/'
-      
-    } catch (err) {
-      console.error('💥 [LOGIN] Unexpected error:', err)
+
+      // Full page reload to ensure auth state is picked up
+      const redirect = searchParams.get('redirect') || '/'
+      window.location.href = redirect
+
+    } catch {
       setError('An unexpected error occurred')
       setLoading(false)
     }
   }
-  
-  return (    <div className="min-h-screen auth-container">
-      <LoginRedirect />
+
+  // Don't show login form if already logged in
+  if (!authLoading && user) {
+    return null
+  }
+
+  return (
+    <div className="min-h-screen auth-container">
       <Card className="auth-card">
         <CardHeader className="space-y-2 text-center pb-6">
           <div className="mx-auto w-16 h-16 bg-gradient-to-r from-amber-500 to-orange-500 rounded-full flex items-center justify-center mb-4 shadow-lg">
             <span className="text-white font-bold text-2xl">💎</span>
           </div>
-          <CardTitle className="text-2xl sm:text-3xl font-bold text-gray-900">Welcome Back</CardTitle>          <CardDescription className="text-sm sm:text-base text-gray-600">
+          <CardTitle className="text-2xl sm:text-3xl font-bold text-gray-900">Welcome Back</CardTitle>
+          <CardDescription className="text-sm sm:text-base text-gray-600">
             Sign in to your jewelry collection account
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
+          {reason === 'inactivity' && (
+            <Alert className="border-amber-200 bg-amber-50">
+              <AlertDescription className="text-sm text-amber-800">
+                You were signed out due to inactivity. Please sign in again.
+              </AlertDescription>
+            </Alert>
+          )}
+
           <form onSubmit={handleSubmit} className="space-y-5">
             <div className="space-y-3">
               <Label htmlFor="email" className="text-sm font-semibold text-gray-700">Email Address</Label>
@@ -100,27 +123,28 @@ export default function Login() {
                   autoComplete="current-password"
                   disabled={loading}
                 />
-              </div>            </div>
-            
+              </div>
+            </div>
+
             <div className="flex items-center justify-between">
               <div></div>
-              <Link 
-                href="/forgot-password" 
+              <Link
+                href="/forgot-password"
                 className="text-sm text-amber-600 hover:text-amber-700 font-medium transition-colors duration-200"
               >
                 Forgot password?
               </Link>
             </div>
-            
+
             {error && (
               <Alert variant="destructive" className="border-red-200 bg-red-50">
                 <AlertDescription className="text-sm text-red-800">{error}</AlertDescription>
               </Alert>
             )}
-            
-            <Button 
-              type="submit" 
-              className="w-full h-12 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-semibold text-base shadow-lg transition-all duration-200 transform hover:scale-[1.02]" 
+
+            <Button
+              type="submit"
+              className="w-full h-12 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-semibold text-base shadow-lg transition-all duration-200 transform hover:scale-[1.02]"
               disabled={loading}
             >
               {loading ? (
@@ -137,7 +161,8 @@ export default function Login() {
             <div className="relative">
               <div className="absolute inset-0 flex items-center">
                 <span className="w-full border-t border-gray-200" />
-              </div>              <div className="relative flex justify-center text-xs uppercase">
+              </div>
+              <div className="relative flex justify-center text-xs uppercase">
                 <span className="bg-white px-2 text-gray-500">New to SilverPalace?</span>
               </div>
             </div>

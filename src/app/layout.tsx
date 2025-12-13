@@ -1,8 +1,8 @@
 import { Metadata, Viewport } from 'next'
 import { Inter } from 'next/font/google'
 import { AuthProvider } from '@/contexts/AuthContext'
-import { AuthSessionProvider } from '@/components/AuthSessionProvider'
 import { LoadingTimeout } from '@/components/LoadingTimeout'
+import { SessionStatus } from '@/components/SessionStatus'
 import Navigation from '@/components/Navigation'
 import Footer from '@/components/Footer'
 import { Toaster } from 'sonner'
@@ -11,8 +11,8 @@ import './globals.css'
 
 const inter = Inter({
   subsets: ['latin'],
-  display: 'swap', // Optimize font loading
-  adjustFontFallback: false, // Disable font fallback adjustment
+  display: 'swap',
+  adjustFontFallback: false,
   preload: true,
 })
 
@@ -87,27 +87,26 @@ export default function RootLayout({
       </head>
       <body className={`${inter.className} antialiased`} suppressHydrationWarning>
         <AuthProvider>
-          <AuthSessionProvider>
-            <LoadingTimeout>
-              <div className="relative flex min-h-screen flex-col overflow-x-hidden">
-                <Navigation />
-                <main className="flex-1 w-full">{children}</main>
-                <Footer />
-              </div>
-            </LoadingTimeout>
-            <Toaster 
-              position="bottom-right"
-              toastOptions={{
-                duration: 4000,
-                style: {
-                  background: 'var(--background)',
-                  color: 'var(--foreground)',
-                  border: '1px solid var(--border)',
-                },
-              }}
-            />
-            <SpeedInsights />
-          </AuthSessionProvider>
+          <LoadingTimeout>
+            <div className="relative flex min-h-screen flex-col overflow-x-hidden">
+              <Navigation />
+              <main className="flex-1 w-full">{children}</main>
+              <Footer />
+            </div>
+          </LoadingTimeout>
+          <Toaster
+            position="bottom-right"
+            toastOptions={{
+              duration: 4000,
+              style: {
+                background: 'var(--background)',
+                color: 'var(--foreground)',
+                border: '1px solid var(--border)',
+              },
+            }}
+          />
+          <SessionStatus />
+          <SpeedInsights />
         </AuthProvider>
       </body>
     </html>

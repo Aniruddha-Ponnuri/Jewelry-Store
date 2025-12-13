@@ -1,23 +1,32 @@
 import { createBrowserClient } from '@supabase/ssr'
 import type { Database } from '@/types/database'
 import { env } from '@/lib/env'
+import { getPersistentStorage } from '@/lib/auth/persistentStorage'
+
+// Singleton client instance
+let clientInstance: ReturnType<typeof createBrowserClient<Database>> | null = null
 
 export function createClient() {
+  // Return existing instance if available
+  if (clientInstance) {
+    return clientInstance
+  }
+
   // Validate environment variables
   if (!env.NEXT_PUBLIC_SUPABASE_URL || !env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
     throw new Error('Supabase credentials missing. Check environment variables.')
   }
 
-  return createBrowserClient<Database>(
+  clientInstance = createBrowserClient<Database>(
     env.NEXT_PUBLIC_SUPABASE_URL,
     env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
     {
       global: {
         fetch: (url, options = {}) => {
-          // Add timeout to all fetch requests (30s default)
+          // Add timeout to all fetch requests (15s)
           const controller = new AbortController()
-          const timeout = setTimeout(() => controller.abort(), 30000)
-          
+          const timeout = setTimeout(() => controller.abort(), 15000)
+
           return fetch(url, {
             ...options,
             signal: controller.signal,
@@ -29,39 +38,12 @@ export function createClient() {
         autoRefreshToken: true,
         detectSessionInUrl: true,
         flowType: 'pkce',
-        // Enhanced session persistence settings
-        storage: {
-          getItem: (key: string) => {
-            if (typeof window !== 'undefined') {
-              try {
-                return localStorage.getItem(key)
-              } catch (error) {
-                console.warn('Error reading from localStorage:', error)
-                return null
-              }
-            }
-            return null
-          },
-          setItem: (key: string, value: string) => {
-            if (typeof window !== 'undefined') {
-              try {
-                localStorage.setItem(key, value)
-              } catch (error) {
-                console.warn('Error writing to localStorage:', error)
-              }
-            }
-          },
-          removeItem: (key: string) => {
-            if (typeof window !== 'undefined') {
-              try {
-                localStorage.removeItem(key)
-              } catch (error) {
-                console.warn('Error removing from localStorage:', error)
-              }
-            }
-          }
-        }
+        storage: getPersistentStorage(),
+        storageKey: 'sb-jfuhcgnjqfeznqpbloze-auth-token',
+        debug: false, // Disable debug logging
       }
     }
   )
+
+  return clientInstance
 }

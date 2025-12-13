@@ -30,21 +30,14 @@ const nextConfig: NextConfig = {
   ],
   // Enable experimental features for better performance
   experimental: {
-    optimizePackageImports: ['lucide-react', '@radix-ui/react-icons'],
+    // Temporarily disable package optimization due to barrel export issues
+    // optimizePackageImports: ['lucide-react', '@radix-ui/react-icons'],
   },
+  // Turbopack configuration (stable in Next.js 15.3+)
+  // Note: Empty turbopack config means use defaults with built-in TypeScript support
+  turbopack: {},
   // Disable source maps in development to avoid 404 errors from @supabase packages
   productionBrowserSourceMaps: false,
-  webpack: (config, { dev, isServer }) => {
-    // Disable source maps for Supabase packages to prevent 404s
-    if (dev && !isServer) {
-      config.module.rules.push({
-        test: /node_modules\/@supabase/,
-        use: ['source-map-loader'],
-        enforce: 'pre',
-      });
-    }
-    return config;
-  },
 };
 
 export default nextConfig;
